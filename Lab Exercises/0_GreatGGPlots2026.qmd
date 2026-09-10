@@ -1,0 +1,342 @@
+---
+title: "Great Graphs and Tables in ggplot and kable"
+subtitle: "MCRS Quantitative Methods""
+author: "Amy Henry"
+date: "November 5, 2024"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+install.packages("ggtext")
+install.packages("PNWColors")
+install.packages("viridis")
+install.packages("wesanderson")
+
+library(tidyverse)
+library(ggtext)
+```
+
+So we all know by now how to make INFORMATIVE graphs using ggplot.
+
+What if we want to make *beautiful* ones?
+
+First let's make some basic plots to play with:
+
+This is a plot of height of pine trees measured repeatedly at different ages.
+
+```{r Basic Plot, warning=FALSE}
+Loblolly
+unique(Loblolly$Seed)
+
+PinePlot <- Loblolly |> ggplot() +
+  aes(x = age,
+      y = height) + 
+  #geom_point()+
+  geom_jitter()+
+  geom_smooth(color = "red", 
+              # linetype = "dashed", # “blank”, “solid”, “dashed”, “dotted”, “dotdash”, “longdash”, “twodash” 
+              # size = 15, 
+              se = FALSE)
+PinePlot
+```
+
+This plot shows how many bug bites you got when you tested different effectiveness of different bug sprays.
+
+```{r Basic Plot, warning=FALSE}
+BugSprayPlot <- InsectSprays |> ggplot()+
+  aes(x = spray, y = count, fill = spray)+
+  stat_boxplot()
+BugSprayPlot
+```
+
+In this figure, "eruptions" is the duration of the eruption, while "waiting" is the time to the next eruption after at the Old Faithful Geyser at Yellowstone National Park.
+
+```{r Basic Plot, warning=FALSE}
+OldFaithfulPlot <- ggplot(faithful) + 
+  aes(x = waiting, y = eruptions, color = waiting) + 
+  geom_point()
+OldFaithfulPlot
+```
+
+Finally, this plot shows the miles per gallon for cars of different weights, with the gear coded to shape.
+
+```{r Basic Plot, warning=FALSE}
+CarsPlot <- ggplot(mtcars) +
+  aes(x = wt, y = mpg, shape = as.factor(gear)) + 
+  geom_point() 
+CarsPlot
+```
+
+## Relabeling Axes, Titles, Captions
+
+First, we can make the text look nicer on our axes, titles, and add a caption.
+
+```{r Change Labels}
+PinePlotLabs <- PinePlot + 
+  labs(y = "Height (m)", 
+       x = "Tree Age (years)",
+       title = "Loblolly Pine Growth by Age", 
+       subtitle = "n = 14 trees",
+       caption = expression(paste('Fourteen Loblolly pine trees (', italic("Pinus taeda"), ") were measured for height using standard field methods at five year intervals.")))
+
+PinePlotLabs
+```
+
+## Adding annotations/labels to the figure
+
+What if we want to label on the figure, or label the points themselves?
+
+```{r Annotate with a mapped variable using geom_text() and annotate() }
+PinePlotLabs + 
+  annotate(geom = "text", x = 20, y = 25, label = "No trees were harmed in this study") + 
+  #geom_text(mapping = aes(label = Seed), position = "jitter")
+  geom_label(mapping = aes(label = Seed))
+  #ggrepel::geom_label_repel(aes(label = Seed))
+
+```
+
+## Visual Theme
+
+The whole plot can have its appearance changed using themes.
+
+```{r Set Whole-Plot Themes}
+PinePlotLabs + 
+  #theme_bw()
+#theme_classic()
+#theme_light()
+#theme_minimal()
+theme_void()
+```
+
+## Changing the y and x-axis limits
+
+Need more room for text, labels, additional geoms? Expand your axes using xlim() and ylim() or expand_limits()
+
+```{r Change x and y axis limits}
+PinePlotLabs + 
+  xlim(0, 30) + 
+  ylim(0, 80) + 
+  expand_limits()
+```
+
+## Change the scale of axes to log scale
+
+Want to plot your log-transformed data but have the axis accurately represent the values, rather than the log of the values? Use the
+
+```{r Log scale axis, and Change the tickmarks on a continuous x-axis}
+
+# run before using
+scale_x_ln <- function(...) scale_x_continuous(..., trans = scales::log_trans()) # custom function for ln axis
+
+PinePlotLabs + 
+  # scale_x_log10() # native function for log10 axis
+  scale_x_ln(breaks = c(1,5,10,15,20,25))
+```
+
+## Relabel your axis ticks
+
+```{r Relabel x-axis categories}
+BugSprayPlot + 
+  scale_x_discrete(name = "Bug Spray Brands",
+                      labels = c("Skin So Soft", "DEET", "Off!", "Picaridin", "Eucalyptus Oil", "Control"))
+```
+
+## Changing Colors
+
+### Setting colors manually
+
+bit.ly/colors-r
+
+https://r-charts.com/colors/
+
+```{r Manual Colors}
+customcolors <- c("cadetblue", "chartreuse2", "yellowgreen", "wheat4", "violetred4", "turquoise")
+
+othercolors <- c("#F0FFFF", "#A52A2A", "#0000FF", "#FFB90F", "#556B2F", "#9932CC")
+
+
+BugSprayPlot +
+  #scale_fill_manual(values = customcolors)
+  scale_fill_manual(values = othercolors)
+```
+
+### Setting colors using packages and palettes
+
+```{r Viewing palette options}
+library(RColorBrewer)
+
+RColorBrewer::display.brewer.all()
+
+RColorBrewer::display.brewer.all(colorblindFriendly = T)
+
+
+
+```
+
+Viridis color scales work for continuous or discrete variables, and look distinct when printed both in color and in black and white.
+
+```{r Viridis}
+
+library(viridis)
+
+OldFaithfulPlot +
+  scale_color_viridis()
+```
+
+### Brewed palettes
+
+```{r Color Palettes with brewer}
+# have it select colors for you from a set
+brewed_colors <- brewer.pal(6, "Set2")
+
+BugSprayPlot +
+  scale_fill_manual(values = brewed_colors)
+
+# Or! Just let it do it for you. 
+BugSprayPlot +
+  scale_fill_brewer(palette = "Set2")
+```
+
+https://github.com/EmilHvitfeldt/r-color-palettes
+
+### Boutique color palettes ;)
+
+```{r Wes Anderson Color Palettes}
+library(wesanderson)
+wes_palettes
+
+Wes_colors <- wes_palette("IsleofDogs1", 6, type ="discrete")
+
+BugSprayPlot +
+  scale_fill_manual(values = Wes_colors)
+
+CarsPlot +
+  aes(color = as.factor(cyl))+
+  scale_color_manual(values = wes_palette("Moonrise1")) + 
+  theme_dark()
+CarsPlot
+```
+
+https://github.com/jakelawlor/PNWColors
+
+```{r Pacific Northwest Color Palettes}
+library(PNWColors)
+pnw_palettes
+
+pnw_palette("Starfish", 6, type = "discrete")
+
+BugSprayPlot +
+  scale_fill_manual(values = pnw_palette("Starfish", 6, type="discrete"))
+```
+
+## Formatting Legends
+
+```{r Formatting Legends}
+BugSprayPlot + 
+  theme(legend.position = "bottom") # Place legend at "bottom", "top", "left", or "right"
+  
+BugSprayPlot + 
+  guides(fill = "none") # Set legend type for each aesthetic: colorbar, legend, or none (no legend)
+
+BugSprayPlot + 
+  scale_fill_discrete(name = "New Legend Title",
+                      labels = c("Skin So Soft", "DEET", "Off!", "Picaridin", "Eucalyptus Oil", "Control"))
+# Set legend title and labels with a scale function.
+
+```
+
+```{r}
+glimpse(mtcars)
+CarsPlot + 
+  aes(color = cyl) + 
+  guides(color = "none", shape = "legend") # can turn off only one legend if you want
+```
+
+More: http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/
+
+## Combining multiple plots into one figure elegantly
+
+```{r Combining multiple plots with patchwork}
+library(patchwork)
+
+PinePlot + OldFaithfulPlot / BugSprayPlot
+
+patchwork <- (PinePlot | OldFaithfulPlot) / BugSprayPlot
+
+patchwork & theme_bw()
+
+```
+
+<http://www.sthda.com/english/wiki/creating-and-saving-graphs-r-base-graphs>
+
+Cheap way: Plots panel –\> Export –\> Save as Image or Save as PDF
+
+## Exporting your plots
+
+```{r Exporting Plots}
+
+# set units to "in" or "cm", resolution (res) to 300 dpi for publication quality figures, set a size, and name your file.
+
+tiff("MyFavoriteFigure.tif", width =4.5, height = 4, units = 'in', res = 300)
+OldFaithfulPlot #Then, run all the code that goes with your figure! 
+dev.off()  # Finally, the dev.off() line tells it you're all done and saves the figure. 
+
+
+pdf("Fig2.pdf") 
+print(BugSprayPlot)
+dev.off() 
+
+
+jpeg("Fig3.jpg", width = 350, height = "350")
+print(PinePlotLabs)
+dev.off()
+```
+
+can do: pdf(“rplot.pdf”): pdf file png(“rplot.png”): png file jpeg(“rplot.jpg”): jpeg file postscript(“rplot.ps”): postscript file bmp(“rplot.bmp”): bmp file win.metafile(“rplot.wmf”): windows metafile
+
+## Styling your Kable tables
+
+```{r formatting kable tables}
+MyLameTable <- Loblolly |> group_by(age) |> summarise(mean = mean(height), sd = sd(height))
+MyLameTable
+library(knitr)
+
+kable(MyLameTable, 
+      col.names = c("Tree Age", "Mean Height", "Std.Dev."), # change your column names
+      align = "c",  # align either left "l", center "c" or right "r"
+      caption = "Tables can have captions too!", 
+      digits = 2, 
+      # digits = c(2,5,1), # round up numbers without having to compute it yourself - can do differnet columns separately with c()
+)
+```
+
+### Replace NA in your table with blanks or NA
+
+```{r Replace NA with blanks or **}
+opts <- options(knitr.kable.NA = "")
+opts <- options(knitr.kable.NA = "**")
+```
+
+```{r simple kableExtra}
+library(kableExtra)
+MyLameTable |>
+  kbl(caption = "Mean Tree Height at Ages") |>
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+```{r Using kableExtra styling}
+kable(MyLameTable, booktabs = TRUE) |>
+  kable_styling(
+    latex_options = "striped",
+    # latex_options = c("striped", "scale_down"),
+    font_size = 8) |>
+    row_spec(2, bold = TRUE, italic = TRUE) |> 
+    column_spec(3,background = "gray") 
+```
+
+To export kable tables, the easiest way is to knit it to html, then copy and paste into a Word document.

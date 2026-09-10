@@ -1,0 +1,232 @@
+---
+title: "SummarizingData_filled"
+author: "Amy King-Henry"
+date modified: "September 2, 2026"
+format: html
+editor: visual
+---
+
+# Miscellaneous Data Summarizing Skills
+
+### Components of a boxplot
+
+- The middle line is the **median**.
+
+- The box is the **interquartile range, or IQR** - the bounds of the second and third quartiles.
+
+- The upper whisker extends from the hinge to the **largest value no further than 1.5 \* IQR** from the hinge (where IQR is the inter-quartile range, or distance between the first and third quartiles).
+
+- The lower whisker extends from the hinge to the **smallest value at most 1.5 \* IQR** of the hinge.
+
+- Data beyond the end of the whiskers are called "outlying" points and are plotted individually.
+
+These are NOT mean and standard deviation!
+
+### Summary Statistics for Continuous Variables
+
+```{r}
+# This chunk will not run
+mean() : Mean
+min() : minimum value
+max() : maximum value
+range() : min and max values
+var() : Variance
+sd() : Standard deviation
+sd()/mean() : Coefficient of Variation
+sd()/sqrt(n()) : Standard error
+n() : sample size/count of rows
+median() : Median
+IQR() : Interquartile Range
+quantile() : quantiles
+summary() : min, 1st quartile, median, mean, 3rd quartile, max
+```
+
+```{r}
+load(file = "Demo Data Files/CCdata_tidy.Rdata")
+install.packages("car")
+library(tidyverse)
+```
+
+### Example using summarize to make a nice summary table of some old owl limpet data:
+
+```{r}
+Size_summary <- CCdata_tidy %>% 
+  group_by(Impact, Year, Season, Survey_Date) %>%
+  summarize(mean_size = mean(Size, na.rm = TRUE), # mean 
+            sd_size = sd(Size, na.rm = TRUE),  # standard deviation
+            n = n(), # count
+            se_size = sd_size/sqrt(n)) %>% # standard error
+  mutate_at(vars(mean_size, sd_size, se_size), # bonus line to reduce digits
+            .funs = round, 2) 
+
+Size_summary %>% 
+  select(-Survey_Date) %>%
+  knitr::kable()
+```
+
+#### Example creating a plot from that summary data:
+
+```{r}
+Size_summary %>% ggplot() + 
+  aes(x = as.factor(Survey_Date), y = mean_size, fill = Impact) + 
+#  geom_point(position = position_dodge(0.9)) +
+geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = mean_size - se_size, 
+                    ymax = mean_size + se_size), 
+                position = position_dodge(0.9), 
+                width = 0.2
+                )
+```
+
+#### Beyond the summary stats: frequency distributions
+
+Boiling it down to the mean and standard deviation really loses a lot of information though. It's always good to look at the histogram/distribution to get a better sense of what's going on. Let's look back at just that one histogram.
+
+```{r}
+CC_sp19 <- CCdata_tidy %>%
+  filter(Season == "Spring" & Year == 2019 & Impact == "High")
+
+CC_sp19 %>%
+  ggplot() +
+  aes(x = Size)+ 
+  geom_histogram(aes(y = ..density..))  +
+  coord_flip()
+```
+
+What observations can we make about the distribution of this data?
+
+- Is it symmetrical or skewed?
+
+- Are there many outliers?
+
+- Is there missing data?
+
+- Is it unimodal, i.e., is there only one peak where there are the most observations, or are there multiple peaks (bimodal, etc.)?
+
+- What are our expectations for what size demographics should look like for populations of:
+
+  - long-lived vs. short-lived animals
+
+  - r vs. K-selected
+
+  - growing vs. shrinking populations?
+
+- What factors apart from the population itself may have influenced this pattern? Let's look at the histograms for all the dates and sites:
+
+```{r many histograms}
+CCdata_tidy %>%
+  ggplot() +
+  aes(x = Size) + 
+  geom_histogram()+
+  facet_wrap(Survey_Date~Impact)
+
+
+```
+
+On the whole, how would you describe these distributions?
+
+#### The Normal Distribution
+
+Many statistical tests and linear models are based on assumptions that data is normally distributed! Therefore, one thing we'll do a lot of is assess distributions and decide if they can be reasonably approximated by the normal distribution or not.
+
+This applies only to data within a sample, but in the context of a statistical test we will apply tests of normality to the residuals, or the differences from the observed and expected values.
+
+How do we assess?
+
+1.  Visually. Is it symmetrical? Are most of the observations in the middle?
+
+2.  With a QQ plot. Do the observations mostly fall close to the 1:1 line?
+
+3.  With a Shapiro-Wilk test (we'll learn this later)
+
+Visual:
+
+```{r}
+CC_sp19 <- CCdata_tidy %>%
+  filter(Season == "Spring" & Year == 2019 & Impact == "High")
+
+CC_sp19 %>%
+  ggplot() +
+  aes(x = Size)+ 
+  geom_histogram(aes(y = ..density..))  
+```
+
+2.  With a QQ plot
+
+```{r}
+# here's one function from Base R
+qqnorm(CC_sp19$Size)
+
+# And another from the car package that has 95% confidence intervals
+car::qqPlot(CC_sp19$Size)
+```
+
+Next week, we will start learning about statistical tests which can quantify and assign a probability to how closely your data fits a particular type of distribution.
+
+If they are normal, then we can use a class of tests called parametric tests. If not, we use non-parametric tests.
+
+## Assessing a MODEL for normality
+
+It's one thing to assess a single sample for normality, but when we do a statistical test, we don't actually worry too much about the data in the samples themselves - what matters is the normality of the residuals, or the individual differences of Observed - Expected.
+
+Here is an example dataset of masses of organisms taken from two populations.
+
+```{r}
+mass_g1 <- exp(rnorm(25, mean = 5, sd = 1))
+mass_g2 <- exp(rnorm(25, mean = 4, sd = 1))
+mass_g <- c(mass_g1, mass_g2)
+
+fakedata <- tibble(Group = c(rep("g1", 25), rep("g2", 25)), mass_g)
+
+```
+
+We ultimately plan to do a t-test, but the easiest way to assess for normality is to make a simple linear model and make some automatic residual plots.
+
+```{r}
+model <- lm(mass_g ~ Group, data = fakedata)
+plot(model)
+plot(model, which = 1)
+plot(model, which = 2)
+```
+
+The data itself also does look skewed, but it's important that we view it separately for the two samples:
+
+```{r}
+ggplot(fakedata) + 
+  aes(x = Group, y = mass_g) + 
+  geom_boxplot()
+
+# the variance is really skewed! 
+```
+
+```{r}
+ggplot(fakedata) + 
+  aes(x = mass_g) + 
+  geom_histogram() + 
+  facet_wrap(Group~.)
+```
+
+Maybe a log transformation will help!
+
+To log transform this data, we can create a new column or just apply the transformation in the ggplot or model.
+
+```{r}
+fakedata <- fakedata |> 
+  mutate(log_mass_g = log(mass_g))
+
+log_model <- lm(log_mass_g ~ Group, data = fakedata)
+
+plot(log_model, which = 1)
+plot(log_model, which = 2)
+```
+
+Those diagnostic plots look much better!
+
+The data look more like normal histograms when you plot the samples separately as well.
+
+```{r}
+ggplot(fakedata) + 
+  aes(x = log_mass_g) + 
+  geom_histogram(binwidth = 0.5) + 
+  facet_wrap(Group~.)
+```
