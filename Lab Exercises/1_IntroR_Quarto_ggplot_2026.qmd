@@ -59,6 +59,8 @@ penguins
 # You only need to install a package once on your computer (like buying a book)
 install.packages("palmerpenguins")
 
+install.packages("rmarkdown")
+
 # Each time you reopen R however, you need to call the packages you're using fresh from the library
 library("palmerpenguins")
 
