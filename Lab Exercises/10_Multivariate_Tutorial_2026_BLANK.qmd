@@ -1,0 +1,221 @@
+---
+title: "Multivariate_Tutorial_2023"
+format: html
+editor: visual
+author: Amy King-Henry
+lastmodified: Sept 10, 2026
+---
+
+# Multivariate Analysis Example: PCA
+
+Source for this script can be found at <https://allisonhorst.github.io/palmerpenguins/articles/pca.html>
+
+Developed by Allison Horst, Alison Hill, Kristen Gorman. Adapted by Amy King-Henry, December 2023
+
+```{r}
+install.packages("")
+
+```
+
+```{r, include = FALSE}
+knitr::(
+  comment =
+  warning = 
+  message = 
+  eval =
+  out.width = 
+)
+library()
+library()
+library()
+
+```
+
+You'll need these packages to follow along with the code in this article locally:
+
+```{r setup, message=FALSE, warning=FALSE}
+library()
+library()
+
+```
+
+## Part 1: Exploratory Multivariate Analysis
+
+### Correlation matrix
+
+The `palmerpenguins::penguins` data contains several size measurement variables that are correlated. Let's take a look at the correlation matrix with the \[corrr package\] (https://corrr.tidymodels.org/) and the `corrr::correlate()` function:
+
+```{r corrr}
+library()
+penguins_corr <- 
+
+  # This fancy select function picks only the columns whose name meet a certain condition!
+  
+  
+  # tidy version of corr()
+  
+
+  # this function only works on correlation matrices, and groups more correlated variables next to each other
+
+
+```
+
+Body mass and flipper length appear highly correlated, but neither of the bill variables appears to be as highly correlated with any other variables.
+
+### Pairwise plot matrix
+
+We can visualize these correlations with the [GGally package](https://ggobi.github.io/ggally/). The function we'll use is called [`GGally::ggpairs()`](https://ggobi.github.io/ggally/articles/ggpairs.html).
+
+```{r penguin-pairs, warning = FALSE, message=FALSE}
+penguins %>%
+  select() %>% 
+  GGally::
+  +
+  scale_colour_manual() +
+  
+```
+
+## Part 2: Principal component analysis (PCA)
+
+### Processing and computing the principal component axes
+
+We have so far done our data cleaning by hand, but there are resources that can help clean and reformat data faster. The following script is from the [recipes](https://recipes.tidymodels.org) package from [tidymodels](https://www.tidymodels.org) to prepare data to perform a [principal component analysis (PCA)](https://en.wikipedia.org/wiki/Principal_component_analysis).
+
+First, we'll also use a few recipe steps to preprocess the data for PCA; namely, we need to:
+
+- remove any `NA` values,
+- center all predictors, and
+- scale all predictors.
+
+If you're interested in learning more about the recipes package, [this article](https://www.tidymodels.org/start/recipes/) is a good place to get started. For now, just run the next chunk:
+
+```{r penguin-recipe, eval=TRUE}
+library()
+penguin_recipe <-
+  recipe() %>% 
+  update_role() %>% 
+  step_naomit() %>%  
+  step_normalize() %>%
+  
+  
+penguin_pca <- 
+  
+```
+
+### How much does each variable align with each principal component axis?
+
+The `value` column here is the loading. For each component, the `value` tells us the linear combination of weights for each variable that contributes to that component; this can also be interpreted as the strength and direction of the relationship of each variable with each axis.
+
+This output is a tidy version of this using `stats::prcomp()`:
+
+```{r prcomp, eval=TRUE}
+penguins %>% 
+  dplyr::
+  tidyr::
+  
+```
+
+These are akin to correlation coefficients - which variable is the strongest predictor of PC1? Which is for PC2?
+
+### How much of the variance in the observations is summarized by each principal component axis?
+
+We can also apply the `recipes::tidy()` method to the output from `recipes::step_pca()` to examine how much variance each component accounts for:
+
+```{r eval=TRUE}
+penguin_recipe %>% 
+  
+```
+
+### Plot PCA loadings
+
+We can plot these loadings by principal component too, following [Julia Silge's example](https://juliasilge.com/blog/cocktail-recipes-umap/):
+
+```{r pca-loadings-plot}
+library()
+ %>%
+  mutate() 
+  ggplot()
+```
+
+### Plot PCA loadings + scores
+
+We have the PCA loadings in `penguin_pca`. But we need them in a wide format now for plotting.
+
+```{r widen-penguins, eval=TRUE}
+# get pca loadings into wider format
+pca_wider <-  %>% 
+  tidyr::
+```
+
+We also need to go back to our prepped penguin recipe, `prepped_penguins`, and `recipes::juice()` it to get the PCA scores back.
+
+```{r pc1-2-plot, eval=TRUE}
+# define arrow style
+arrow_style <- arrow()
+pca_plot <-
+pca_plot +
+  geom_segment() + 
+  geom_text() 
+```
+
+In the above plot, you can see a lot!
+
+First, if you focus on the x-axis showing us the first principal component, you can see that flipper length and body mass are very important (confirming what we saw in the above bar chart). Along this dimension, Gentoo penguins stand out clearly from the other two species. We can confirm this looking at summary statistics:
+
+```{r eval=TRUE}
+penguins %>% 
+  group_by() %>% 
+  summarise(
+    flipper_length_mm = ,
+    body_mass_g = 
+```
+
+We can see this with a simple scatterplot:
+
+```{r flipper-mass-plot, eval=TRUE}
+ggplot() 
+```
+
+If you now focus more on the y-axis showing us the second principal component, you can see that our two bill size variables, `bill_length_mm` and `bill_depth_mm`, are very important (again, confirming what we saw in the above bar chart).
+
+Let's do the same thing for principal component 2 and 3.
+
+```{r eval=TRUE}
+pca_plot %+% 
+  aes() +
+  geom_segment() 
+```
+
+We see again that PC2 seems most associated with our bill size variables, `bill_length_mm` and `bill_depth_mm`. But now we can see more clearly that this dimension seems to separate Chinstrap penguins from the other two species. We can confirm this by glancing at summary statistics again by species:
+
+```{r eval=TRUE}
+penguins %>% 
+  group_by() %>% 
+  summarise()
+```
+
+We can see this with a simple scatterplot too:
+
+```{r eval=TRUE}
+ggplot() 
+```
+
+This is actually a pretty neat scatterplot---it highlights a perfect example of why you'd need the combination of two variables to differentiate between these three species. Comparing distributions for any single variable only differentiates one species from the other two![^1]
+
+[^1]: this is also a great example Simpson's paradox, see `vignette("examples")`
+
+```{r eval=TRUE, fig.show="hold", out.width="49%", echo=FALSE}
+ggplot()
+
+```
+
+## Summary
+
+So, Gentoos appear to just be giants, compared to the Adelie and Chinstrap penguins. While Adelie and Chinstraps are similar size-wise as measured by flipper length and body mass, Chinstraps seem to have longer bills and Adelie penguins have stubbier bills (a pug-gein, if you will?). And Gentoos, despite being large overall, have flatter bills than either of the other two species. Reminder:
+
+<img src="../reference/figures/culmen_depth.png" width="40%"/>
+
+## Other PCA resources
+
+- Michael Friendly's [multivariate palmerpenguins analysis](https://rpubs.com/friendly/penguin-biplots)
+- Julia Silge's [PCA and UMAP with tidymodels and #TidyTuesday cocktail recipes](https://juliasilge.com/blog/cocktail-recipes-umap/)

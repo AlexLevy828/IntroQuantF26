@@ -1,0 +1,287 @@
+---
+title: "Two-way ANOVA"
+date: "September 2, 2026"
+author: "Amy King-Henry"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::
+```
+
+# Two-Way ANOVA Tutorial
+
+**Load Packages**
+
+```{r cars}
+install.packages("")
+install.packages("")
+
+library(tidyverse)
+```
+
+**Load Data**
+
+```{r}
+load(file = )
+```
+
+This time let's work with a dataset that has tested TWO factors.
+
+For the experiment whose data is represented in pw, plants of two different species, both exposed to three different watering treatments.
+
+1.  Tidy your data and prepare it for analysis
+
+2.  Assess what kind of variables we're dealing with.
+
+3.  Visualize the data
+
+4.  Check assumptions
+
+5.  Conduct the statistical test
+
+6.  Assess the output. Does it make sense?
+
+7.  Post-Hoc Test
+
+8.  Plot and annotate to show significance
+
+Lets follow all our steps:
+
+### Step 1: Tidy your data and prepare it for analysis
+
+```{r}
+
+
+
+```
+
+This dataset is already in tidy format. Lucky us!
+
+### Step 2: Assess what kind of variables we're dealing with.
+
+- height: quantitative
+
+- plant: categorical
+
+- water: categorical
+
+Predictors: plant, water
+
+Response: height
+
+formula: (see p. 261 of Gardener, remember)
+
+`height ~ plant + water` (this is the formula if you are NOT interested in interactions)
+
+`height ~ plant * water` (this is the formula if you ARE interested in interactions, which we are.)
+
+The second formula can also be written as: `height ~ plant + water + plant:water`
+
+### Step 3: Visualize the data
+
+```{r}
+ggplot() +
+  aes() + 
+
+```
+
+### Step 4: Check assumptions
+
+#### Normality
+
+Oh, what a pain to check normality for each of the 6 combinations of treatments! Let's check it by examining the residuals instead using this fancy function that I picked up from this page: https://www.datanovia.com/en/lessons/anova-in-r/#check-assumptions
+
+If the residuals all plot within the gray area, its all normal.
+
+```{r}
+
+# Build the linear model
+model  <- lm()
+
+plot(, which = )
+
+# Create a QQ plot of residuals
+ggpubr
+```
+
+#### Homogeneity of variance:
+
+For multi-way ANOVA, Levene's test works pretty well.
+
+[ANOVA Assumptions Check resource](https://www.datanovia.com/en/lessons/anova-in-r/#check-assumptions)
+
+(Remember, the :: operator allows you to use a function from a package you have installed without having to load the whole package)
+
+```{r}
+plot()
+
+ %>% rstatix::levene_test( )
+```
+
+Looks pretty okay!
+
+### Step 5: Conduct the statistical test
+
+```{r}
+#There are two ways to run ANOVA. This one is useful for some functions, aov() we'll do for the Tukey Test. Both come out with the same answer. 
+model_pw_lm <- 
+anova()
+
+model_pw_aov <- 
+summary()
+```
+
+At first pass, it looks like:
+
+- Plant species by itself didn't make a difference (p = 0.14264)
+
+- Water treatment did make a big difference (p \<\<\< 0.0001)
+
+- Our interaction (`plant:water`, p = 0.00178) indicates that the two plant species may have reacted differently to the water treatments.
+
+### Step 6: Assess the output. Does it make sense?
+
+An easy first pass to examine if you've set up your model correctly is to check the degrees of freedom. Degrees of freedom serve as a proxy for sample size, and are calculated differently for each factor.
+
+#### Treatment degrees of freedom :
+
+- k - 1 plant has two species, so `2 - 1 = 1`
+
+- water has three levels, so `3 - 1 = 2`
+
+#### Interaction degrees of freedom:
+
+- `(rows - 1) * (columns - 1)`
+
+Here, rows are the species treatment (2 - 1 = 1) and columns are the water treatment (3 - 1 = 2) so our df here should be 1 \* 2 = 2 (good)
+
+#### Residuals (error term) degrees of freedom:
+
+- `total obs - (nrow * ncol)`
+
+```{r}
+
+pw |>  # 18 total rows
+
+# 
+```
+
+Let's see if what we computed matches with the model output:
+
+```{r}
+
+
+```
+
+If your degrees of freedom don't add up, you can try the following troubleshooting steps:
+
+- Check that the data frame you are using for the input to your model is the correct one.
+
+- Is your data frame tidy?
+
+- Have you correctly entered your predictors and responses into the model?
+
+### Step 7: Post-Hoc Test
+
+Like in one-way ANOVA, this test only tells us if there IS a difference between one or more groups, not which groups are different. We can again use Tukey's Honest Significant Difference test to assess our results and get those details, though its more challenging to parse this time around.
+
+It will give us the pairwise differences within each treatment (ignoring the others), then if we have specified interactions, between each combination of treatments.
+
+```{r}
+#TukeyHSD only likes the output of models from the aov() function, not the lm() function. 
+
+#model_pw_aov 
+
+TukeyHSD()
+```
+
+So we already knew there wasn't a difference between plant species, and as there are only two, it only shows us one pairwise p-value.
+
+The water treatment shows us three pairs - `lo-hi, mid-hi, mid-lo`, and all three are significantly different from each other. Easy.
+
+Within the interactions, we want to focus on the pairs that are of interest to us in the experiment, not every single pairwise comparison is very valuable. The ones that are valuable are ones which share levels in one factor (e.g. `vulgaris:mid - vulgaris:lo` is a comparison within vulgaris, or `vulgaris:mid-sativa:mid` is within the mid water treatment). Ones which are different across both factors we can mostly disregard.
+
+### Step 8: Plot and annotate to show significance
+
+Make the summary
+
+```{r}
+pw_summary <-  |> 
+  group_by() |> 
+  summarise(
+    mean = , 
+    se = )
+
+```
+
+Position here is important - the "dodge" puts the columns side by side. You also have to make the error bars dodge. I copied some code for getting them to dodge properly at this webpage.\
+[Stack Overflow Sample Code for "dodging" errorbars](https://stackoverflow.com/questions/13050516/how-to-make-dodge-in-geom-bar-agree-with-dodge-in-geom-errorbar-geom-point)
+
+```{r}
+
+# This is what it looks like without the dodge: not useful! 
+ggplot() + 
+  aes() + 
+  geom_col() + 
+  geom_errorbar(aes()
+
+# These two make the same plot but with different ggplot methods. For the first one, you compute the summary table and use that to manually make the plot. 
+ggplot() + 
+  aes() + 
+  geom_col() + 
+  geom_errorbar()
+
+
+# This second method computes the summary statistics for you using stat_summary! Very useful, I just always forget how it works, so I tend to compute my own summary statistics. Either way is valid. 
+pw |> 
+  ggplot() +
+  aes() +
+  stat_summary()+
+  
+```
+
+Finally, need to annotate for significance.
+
+```{r}
+TukeyHSD()
+```
+
+You saw up above this was a lot to pick apart, and we don't need to put a \* or bracket over every pairwise comparison. A shortcut approach is to order the treatment combinations by means from largest to smallest. Based on the height of bars in the plot, this is:
+
+- hi-sativa (40ish)
+- hi-vulgaris (30 ish)
+- mid-vulgaris (16 ish)
+- mid-sativa (15 ish)
+- lo-vulgaris (9 ish)
+- lo-sativa (6 ish)
+
+Now check the pair of the two highest, then the second with the third highest, and so on and so forth.
+
+- hi-sativa x hi-vulgaris = different
+- hi-vulgaris x mid-vulgaris = different
+- mid-vulgaris x mid-sativa = not different
+- mid-sativa x lo-vulgaris = different (p = 0.46)
+- lo-vulgaris x lo-sativa = not different
+
+Then you get the logic puzzle of figuring out the letters. Start left to right.
+
+```{r}
+ggplot() + 
+  aes(x = , y = , fill = ) + 
+  geom_col(position = ) + 
+  geom_errorbar()+
+  geom_text(
+    label = 
+    position = 
+    aes()
+    vjust = 
+    size = 
+  ylim()
+
+library()
+
+ggplot()
+  
+```

@@ -1,0 +1,559 @@
+---
+title: "Cor_Regression_2026"
+format: html
+editor: visual
+author: Amy King-Henry
+lastmodified: Sept 2, 2026
+---
+
+# Correlation & Linear Regression
+
+Correlation and Simple Linear Regression are methods that test for the relationship between two continuous quantitative variables.
+
+Today we will play with a few datasets that fit these criteria.
+
+### Steps for Correlation and Regression
+
+- Step 1: Look at your data. Is it tidy?
+- Step 2: Visualize the data
+- Step 3: Check your assumptions
+- Step 4: Apply transformations, if necessary
+- Step 5: Determine which test to use
+- Step 6: Write out your hypotheses
+- Step 7: Conduct the test
+- Step 8: Communicate results with a plot and writing.
+
+### Load Data
+
+```{r}
+load()
+```
+
+### Load packages
+
+```{r}
+library()
+```
+
+## Correlation
+
+The dataset `mayfly` shows the abundance of a mayfly species and the speed of the water at the sampling location.
+
+### Step 1: Look at your data. Is it tidy?
+
+```{r}
+mayfly
+```
+
+We think there might be a relationship here!
+
+#### Step 2: Visualize the data
+
+Let's make a scatter plot to explore this data and see if we think there might be a relationship.
+
+```{r}
+ggplot() + 
+  aes() +
+  geom_point()
+```
+
+#### Step 3: Check your assumptions
+
+The assumptions of correlation are:
+
+1.  **Linear relationship** - visually assess (check!)
+
+    1.  What shape is the data? If your data looks like it could plausibly follow a straight line, then proceed with simple correlation or linear regression. If the data looks like it is U-shaped, curved, some other very weird distribution, then you need to use a different kind of test.
+
+    2.  Since this looks like a linear relationship, we'll proceed.
+
+2.  **Multivariate normality** - check normality of all dependent variables (both IV and DV if using Spearman correlation)
+
+##### Are one or both of your variables **normal**? (this is a very small sample size, so we will assume its good enough, but normally you could check with a histogram)
+
+```{r}
+hist()
+
+```
+
+3.  **Homoscedasticity** - is there roughly equal variance across the range of data?
+
+**Homoscedasticity** - Run the next chunk, then click the first plot, labeled "Residuals vs Fitted". That first plot plots the residuals (the differences between the individual points and the predicted relationship) against the fitted values (the values they would be in a perfect line). The deviation from the dashed line at zero is the residual (the difference between the observed datapoint and the fitted line).
+
+```{r}
+mayfly.lm <- lm()
+plot()
+
+
+```
+
+Is the variability the same on the left and right sides? It's a little hard to tell here because our sample size is small, so I'll demonstrate one that looks a little more like you expect with a larger data set.
+
+Run this next chunk, but don't worry about looking at it - it randomly generates a fake data set that will demonstrate a heteroscedastic distribution of residuals, and then plot the graph.
+
+```{r}
+n=
+a=
+b = 
+sigma2 = 
+eps = rnorm()
+y=
+mod <- 
+
+
+```
+
+Now lets look again at that plot of residuals vs. fitted values:
+
+```{r}
+plot()  # Plot the model information
+```
+
+We decide our mayfly data is homoscedastic (same variance) so we can move on.
+
+#### Step 4: Apply transformations, if necessary
+
+If your data failed any of the assumptions, you have recourse! We will learn how to do regression on non-linear or non-normal data on another day.
+
+#### Step 5: determine which test to use and which is the predictor/response
+
+- If NOT NORMAL (skewed) (and transformations fail), then the test to use is the the *Spearman's Rank test* (non-parametric).
+
+- If it IS NORMAL, then you can calculate a *Pearson's product moment*, or the correlation coefficient associated with a simple regression.
+
+- If your data is *ordinal* (i.e., categorical but in a strict order, like \[small medium large\]), then you can either do a Spearman or calculate the *Kendall's tau coefficient* (more specific to ordinal data)
+
+**Ask**: Which of these variables makes more sense as the predictor variable? Which is more sensible as the response variable?
+
+Remember, *correlation does not mean causation!*
+
+#### Step 6: Write out your hypotheses
+
+For a Spearman's rank correlation:
+
+- H0: There is no correlation between stream speed and mayfly abundance. (rho = 0)
+
+- HA: There is a positive correlation between stream speed and mayfly abundance. (rho \> 0) or,
+
+- HA: There is a negative correlation between stream speed and mayfly abundance (rho \< 0)
+
+for a Pearson's product moment test or simple linear regression:
+
+- H0: There is not a linear relationship between stream speed and mayfly abundance (slope = 0)
+
+- HA: There is a linear relationship between stream speed and mayfly abundance (slope != 0) or, greater than, or less than, etc.
+
+#### Step 7: Conduct the test
+
+First let's demonstrate the non-parametric, ranked data, Spearman's rank coefficient test.
+
+```{r}
+cor.test(Abund, Speed, data = mayfly, method = "spearman")
+
+#save the output to an object
+MayCorSpear <- cor.test(Abund, Speed, data = mayfly, method = "spearman")
+```
+
+Rho (Spearman's rank coefficient) tells us a few things
+
+1.  how close the relationship is (from 0 to 1)
+
+2.  the direction of the relationship (+ or -)
+
+```{r}
+
+MayCorSpear$
+
+rho_spear <- round()
+
+```
+
+The p-value shows us whether that relationship is significant (depending on the sample size)
+
+```{r}
+
+round()
+```
+
+And you can stop here! You write this formally as something like, "Mayfly abundance is positively correlated with stream flow speed (rho = `r rho_spear`, p = `r round(MayCorSpear$p.value, 2)` )
+
+For the Pearson's Product Moment Correlation, or simple linear regression, you can use the same function with one modified argument to calculate a Pearson's Correlation Coefficient.
+
+```{r}
+MayCorPear <- cor.test()
+
+
+```
+
+What the Pearson's product moment is calculating is the strength of the linear relationship, which is interesting, but we would like to go further when we're doing a simple linear regression. For that, we would like to calculate the SLOPE and INTERCEPT of the best fit line through those points.
+
+## Simple Linear Regression
+
+**How do you know whether to choose correlation or regression?**
+
+If one variable is not obviously the independent or dependent variable, then your calculations should stop at calculating a correlation coefficient to measure the strength of the relationship.
+
+**If you do have a clear predictor and response**, and have normally distributed data (in the response variable only), then you can conduct all the steps of a simple linear regression and fit a line to the relationship.
+
+`lm()` is a function that uses least squares to calculate the best fit line for the data. (lm stands for linear model)
+
+We've seen this before, when we were testing assumptions for the T-test and earlier in this tutorial. Regression and ANOVA are closely related, mathematically.
+
+```{r}
+mayfly.lm <- 
+
+summary()
+```
+
+What outputs do we get from this model?
+
+1.  The slope of the best fit line is found under the Coefficients table, and is the "`Estimate`" for Speed.
+
+```{r}
+slope <- 
+
+```
+
+2.  The intercept of the line is found just above that, Estimate for `(Intercept)`
+
+```{r}
+int <- coef()[]
+
+```
+
+What is the formula for the best fit line?
+
+y = mx + b
+
+y = 1.17 x + 1.87
+
+Intuitively, this means that there is one additional mayfly for each additional 1.17 units of speed.
+
+3.  The p-value for the significance of that line (just because you CAN fit a line doesn't mean it's very good)
+
+```{r}
+summary()$
+```
+
+4.  The R-squared value is the proportion of the variation in the response (mayflies) that the linear relationship with the predictor variable (speed) explains.
+
+```{r}
+Rsq <- 
+
+```
+
+Speed explains 71% of the variation in mayfly abundance!
+
+#### Step 8: Communicate results with a plot and writing.
+
+```{r}
+Mayflyplot <- ggplot() + 
+  aes() +
+
+  
+Mayflyplot +
+  geom_smooth(method = , se = )
+```
+
+If your line wasn't significant, make sure that is clear by making it a dotted or dashed line.
+
+```{r}
+Mayflyplot +
+  geom_smooth()
+```
+
+IF YOUR LINEAR RELATIONSHIP IS SIGNIFICANT, it's also common to add the equation and R-squared value onto the plot, to be cool.
+
+```{r}
+Rsq <- round()
+slope <- 
+int <- 
+
+Mayflyplot +
+  geom_smooth() +
+  geom_text()
+```
+
+```{r}
+summary()
+```
+
+To report these results, we need to report a few things - the equation of the line may be interesting, but to report the result of the significance tests, we report the *R-squared* as well as the *F-statistic* and *degrees of freedom*, like we would for an ANOVA.
+
+```{r}
+
+```
+
+Example: Water flow speed linearly predicted abundance of mayflies, explaining 71.3% of the variance (R\^2 = 0.7126, F(1,6) = 14.87, p \< 0.01).
+
+## Great! What about less simple, non-linear regression? there are relationships that aren't linear.
+
+- Step 1: Look at your data. Is it tidy?
+- Step 2: Visualize the data
+- Step 3: Check your assumptions
+- Step 4: Apply transformations, if necessary
+- Step 5: Determine which test to use
+- Step 6: Write out your hypotheses
+- Step 7: Conduct the test
+- Step 8: Communicate results with a plot and writing.
+
+#### Step 1: Look at your data. Is it tidy?
+
+pg = These data show the growth of a plant species in response to different levels of a nutrient.
+
+```{r}
+pg
+```
+
+#### Step 2: Visualize the data
+
+```{r}
+ggplot()
+```
+
+Not so linear!
+
+## Logarithmic correlation/regression
+
+Does our line look better if we transform our independent variable?
+
+```{r}
+ggplot()
+
+ggplot()
+```
+
+To fit a linear model, you just plug in the log-transformed variable into the same linear model function that we used before.
+
+```{r}
+pg.lm_bad <- lm()
+
+
+pg.lm <- lm()
+```
+
+How do we apply these calculated coefficients to make a best fit line?
+
+It still fits a `y = mx+b` framework, but now the x is log-transformed
+
+> y = a \* ln(x) + c
+
+a = analogous to slope c = intercept
+
+| growth = 5.10 Ln (nutrient) + 0.69
+
+#### Step 8: Communicate results with a plot and writing.
+
+```{r}
+pg_plot <- ggplot()
+
+pg_plot_plusline <-  +
+  geom_smooth(
+  )
+
+
+```
+
+```{r}
+pg_plot <- ggplot() + 
+  aes() + 
+  geom_point() + geom_smooth()
+```
+
+Then we can also add our text to the plot with the equation and R-squared or whatever other information.
+
+```{r}
+summary(pg.lm)
+
+
+pg_plot_plusline + 
+  geom_text(x = , y= , label = )
+```
+
+## Polynomial Regression
+
+Not all linear data looks like a straight line. Sometimes a relationship can be modeled with a simple function instead, for example a parabola. These data show the abundance of bluebell in a wood in England. Data are presented showing the abundance of the plant and the light intensity at the growing site.
+
+#### Step 1: What does the data look like?
+
+```{r}
+
+```
+
+#### Step 2: Visualize the data
+
+```{r}
+bbel_plot <- 
+
+bbel_plot
+```
+
+Again, not linear, but definitely a relationship. That's a polynomial!
+
+To transform that data to use a linear model to fit it, you use a formula that looks like:
+
+y = ax + bx\^2 + c
+
+To transform this in R, you write it as: `light + I(light^2)`
+
+The `I()` tells R to "isolate" that segment and treat it properly here - just a convention you'll have to remember and look up how to do.
+
+#### Run the model
+
+```{r}
+bbel.lm <- 
+ 
+summary()
+```
+
+Notice how this has given us three estimates - this is for `a`, `b` and `c` in our equation above.
+
+If we plug these values into our equation above, we get a fitted line with the equation:
+
+`abund = 2.060*light - 0.040*light^2 - 2.005`
+
+```{r}
+bbel_plot +
+  geom_smooth(method = , formula = , se = )
+```
+
+Neat-o!
+
+TRY IT YOURSELF:
+
+```{r}
+library()
+View()
+```
+
+1.  Choose one species and filter for only the data on that species.
+
+2.  Is there a linear relationship between bill length and bill depth?
+
+3.  What about between bill length and flipper length?
+
+## Multiple Linear Regression
+
+```{r}
+load()
+
+guppy <- read.csv()
+lions <- read.csv()
+earthworms <- read.csv()
+
+```
+
+Multiple linear regression tests the effect of multiple predictors on the response variable.
+
+Basic format:
+
+`lm(ResponseVar ~ PredictorVar + Predictor2, data = DataFrame)`
+
+These data show the abundance of butterflies and the availability of food plants and nectar resources.
+
+```{r}
+glimpse()
+```
+
+```{r}
+bff.lm <- lm(, data = )
+
+```
+
+### Viewing the Regression Coefficients
+
+```{r}
+coef() 
+ # Calling only one of the coefficients
+# another way to do the same thing
+```
+
+The regression coefficients are used by the model, but if we want an equivalent to the slope (i.e., a per unit influence of each predictor on the response), the we need to calculate the beta coefficients for each variable.
+
+Mathematically, the beta coefficient is calculated:
+
+`RegCoef1 * (sd(response1) / sd(predictor1) )`
+
+Beta coefficient for predictor variable FOOD:
+
+```{r}
+coef()[] * 
+```
+
+Beta coefficient for predictor variable NECTAR:
+
+```{r}
+coef()[] * 
+```
+
+So that's all well and good when we only have a few predictor variables, and can drop the ones that aren't significant.
+
+The goal of regression is to find the best fit model to explain the data - and that sometimes means not using all the variables we collected data on! What are some reasons to exclude data?
+
+-not significant -collinearity between two predictor variables
+
+## Multiple Regression steps
+
+View the data:
+
+```{r}
+glimpse()
+```
+
+Remember the mayflies? In the last exercise we only tested the effect of Speed, but many things could affect the length of a mayfly! What variables best predict length of mayflies?
+
+#### Step 1: Construct a correlation matrix to find a starting point and identify collinear variables
+
+Where to begin? We might start out by seeing which variables we expect to be important. \# When have we seen cor() before?
+
+This function makes a correlation matrix looking at the relationship of each variable to all the others.
+
+```{r}
+ %>% 
+```
+
+#### Step 2: Select your first variable
+
+Since length is our RESPONSE variable, we look at the first column/row (they're the same) and see which one has the highest (absolute) correlation coefficient.
+
+Which factor has the highest absolute value? Let's add that one first and run a simple model.
+
+```{r}
+mod <- lm()
+
+```
+
+#### Step 3: Decide if additional variables are appropriate using stepwise testing.
+
+Adding other predictors we need to justify whether they add something to the model - either by expert opinion (it should be important), or because they aren't collinear and explain other parts of the variation. We can test whether one model is better than another using an anova.
+
+```{r}
+fit1 <- 
+fit1 <- 
+summary()
+fit2 <- lm()
+
+plot( ~ , data = )
+summary(=)
+
+```
+
+#### Step 4: Assess model fit and results
+
+Since our p-value is greater than 0.05, the model with more variables is not significantly better than BOD by itself!
+
+Why weren't the other variables significant anymore?
+
+Look back at the correlation matrix.
+
+```{r}
+cor()
+```
+
+### Step 5: Report results
+
+Graphing in three dimensions is hard and rarely worth it! This gets reported mostly in text.
+
+To report in text, report: R-squared, (F), degrees of freedom (numerator, denominator; in parentheses separated by a comma next to F), and significance level (p), β. Report the β and the corresponding t-test for that predictors for each predictor in the regression
+
+Example: Multiple regression analysis was used to test if environmental factors significantly predicted mayfly length. The results of the regression indicated the two predictors explained 35.8% of the variance (R2 =.38, F(2,55)=5.56, p\<.01). It was found that BOD significantly predicted length (β = .56, p\<.001), as did water speed (β = -.36, p\<.01).

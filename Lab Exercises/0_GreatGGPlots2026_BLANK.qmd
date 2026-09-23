@@ -1,0 +1,326 @@
+---
+title: "Great Graphs and Tables in ggplot and kable"
+subtitle: "MCRS Quantitative Methods""
+author: "Amy Henry"
+date: "November 5, 2024"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+install.packages("ggtext")
+
+library(tidyverse)
+library(ggtext)
+```
+
+So we all know by now how to make INFORMATIVE graphs using ggplot.
+
+What if we want to make *beautiful* ones?
+
+First let's make some basic plots to play with:
+
+This is a plot of height of pine trees measured repeatedly at different ages.
+
+```{r Basic Plot, warning=FALSE}
+Loblolly
+unique()
+
+PinePlot <- 
+  aes(x =
+      y = ) + 
+  #geom_point()+
+  geom_jitter()+
+  geom_smooth(
+              # linetype = "dashed", # “blank”, “solid”, “dashed”, “dotted”, “dotdash”, “longdash”, “twodash” 
+              # size = 15, 
+              se = )
+
+```
+
+This plot shows how many bug bites you got when you tested different effectiveness of different bug sprays.
+
+```{r Basic Plot, warning=FALSE}
+BugSprayPlot <- |> ggplot()+
+  aes(x = , y = , fill = ) +
+  stat_boxplot()
+```
+
+In this figure, "eruptions" is the duration of the eruption, while "waiting" is the time to the next eruption after at the Old Faithful Geyser at Yellowstone National Park.
+
+```{r Basic Plot, warning=FALSE}
+OldFaithfulPlot <- ggplot() + 
+  aes(x = , y = , color = ) + 
+  geom_point()
+
+```
+
+Finally, this plot shows the miles per gallon for cars of different weights, with the gear coded to shape.
+
+```{r Basic Plot, warning=FALSE}
+
+```
+
+## Relabeling Axes, Titles, Captions
+
+First, we can make the text look nicer on our axes, titles, and add a caption.
+
+```{r Change Labels}
+PinePlotLabs <- PinePlot + 
+  labs(y =  
+       x = 
+       title = 
+       subtitle =
+       caption = )
+
+```
+
+## Adding annotations/labels to the figure
+
+What if we want to label on the figure, or label the points themselves?
+
+```{r Annotate with a mapped variable using geom_text() and annotate() }
+PinePlotLabs + 
+  annotate() + 
+  #geom_text(mapping = aes(label = Seed), position = "jitter")
+  geom_label(mapping = )
+  #ggrepel::geom_label_repel(aes(label = Seed))
+
+```
+
+## Visual Theme
+
+The whole plot can have its appearance changed using themes.
+
+```{r Set Whole-Plot Themes}
+ + 
+  #theme_bw()
+#theme_classic()
+#theme_light()
+#theme_minimal()
+
+```
+
+## Changing the y and x-axis limits
+
+Need more room for text, labels, additional geoms? Expand your axes using xlim() and ylim() or expand_limits()
+
+```{r Change x and y axis limits}
+ + 
+  xlim() + 
+  ylim() + 
+  
+```
+
+## Change the scale of axes to log scale
+
+Want to plot your log-transformed data but have the axis accurately represent the values, rather than the log of the values? Use the
+
+```{r Log scale axis, and Change the tickmarks on a continuous x-axis}
+
+# run before using
+scale_x_ln <- function() # custom function for ln axis
+
+PinePlotLabs + 
+  # scale_x_log10() # native function for log10 axis
+  scale_x_ln(breaks =)
+```
+
+## Relabel your axis ticks
+
+```{r Relabel x-axis categories}
+BugSprayPlot + 
+  scale_x_discrete(name = ,
+                      labels =)
+```
+
+## Changing Colors
+
+### Setting colors manually
+
+bit.ly/colors-r
+
+https://r-charts.com/colors/
+
+```{r Manual Colors}
+customcolors <- c("cadetblue", "chartreuse2", "yellowgreen")
+
+othercolors <- c("#F0FFFF", "#A52A2A", "#0000FF", "#FFB90F", "#556B2F", "#9932CC")
+
+
+BugSprayPlot +
+  #scale_fill_manual(values = customcolors)
+  
+```
+
+### Setting colors using packages and palettes
+
+```{r Viewing palette options}
+library
+
+RColorBrewer::
+
+RColorBrewer::
+
+
+
+```
+
+Viridis color scales work for continuous or discrete variables, and look distinct when printed both in color and in black and white.
+
+```{r Viridis}
+
+library()
+
+OldFaithfulPlot +
+  
+```
+
+### Brewed palettes
+
+```{r Color Palettes with brewer}
+# have it select colors for you from a set
+brewed_colors <- 
+
+BugSprayPlot +
+  
+
+# Or! Just let it do it for you. 
+BugSprayPlot +
+  
+```
+
+https://github.com/EmilHvitfeldt/r-color-palettes
+
+### Boutique color palettes ;)
+
+```{r Wes Anderson Color Palettes}
+library(wesanderson)
+
+
+Wes_colors <- 
+
+BugSprayPlot +
+  scale_fill_manual(values = )
+
+CarsPlot +
+  aes(
+
+```
+
+https://github.com/jakelawlor/PNWColors
+
+```{r Pacific Northwest Color Palettes}
+library()
+pnw_palettes
+
+pnw_palette()
+
+BugSprayPlot +
+  scale_fill_manual(values = )
+```
+
+## Formatting Legends
+
+```{r Formatting Legends}
+BugSprayPlot + 
+  theme() # Place legend at "bottom", "top", "left", or "right"
+  
+BugSprayPlot + 
+   # Set legend type for each aesthetic: colorbar, legend, or none (no legend)
+
+BugSprayPlot + 
+  scale_fill_discrete(name = ,
+                      labels = )
+# Set legend title and labels with a scale function.
+
+```
+
+```{r}
+glimpse()
+CarsPlot + 
+  aes( + 
+  guides() # can turn off only one legend if you want
+```
+
+More: http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/
+
+## Combining multiple plots into one figure elegantly
+
+```{r Combining multiple plots with patchwork}
+library()
+
+PinePlot +
+
+patchwork <- (
+
+patchwork & theme_bw()
+
+```
+
+<http://www.sthda.com/english/wiki/creating-and-saving-graphs-r-base-graphs>
+
+Cheap way: Plots panel –\> Export –\> Save as Image or Save as PDF
+
+## Exporting your plots
+
+```{r Exporting Plots}
+
+# set units to "in" or "cm", resolution (res) to 300 dpi for publication quality figures, set a size, and name your file.
+
+tiff()
+OldFaithfulPlot #Then, run all the code that goes with your figure! 
+dev.off()  # Finally, the dev.off() line tells it you're all done and saves the figure. 
+
+
+pdf() 
+
+jpeg()
+```
+
+can do: pdf(“rplot.pdf”): pdf file png(“rplot.png”): png file jpeg(“rplot.jpg”): jpeg file postscript(“rplot.ps”): postscript file bmp(“rplot.bmp”): bmp file win.metafile(“rplot.wmf”): windows metafile
+
+## Styling your Kable tables
+
+```{r formatting kable tables}
+MyLameTable <-
+library()
+
+kable(, 
+      col.names = , # change your column names
+      align = ,  # align either left "l", center "c" or right "r"
+      caption = , 
+      digits = , 
+      # digits = c(2,5,1), # round up numbers without having to compute it yourself - can do differnet columns separately with c()
+)
+```
+
+### Replace NA in your table with blanks or NA
+
+```{r Replace NA with blanks or **}
+opts <- options()
+opts <-
+```
+
+```{r simple kableExtra}
+library(kableExtra)
+MyLameTable |>
+  kbl() |>
+  kable_classic()
+```
+
+```{r Using kableExtra styling}
+kable(, booktabs = ) |>
+  kable_styling(
+    latex_options = ,
+    # latex_options = c("striped", "scale_down"),
+    font_size = ) |>
+    row_spec() |> 
+    column_spec() 
+```
+
+To export kable tables, the easiest way is to knit it to html, then copy and paste into a Word document.
