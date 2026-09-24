@@ -8,7 +8,7 @@ editor: visual
 
 # Introduction to R, Quarto, and GGplot
 
-THIS TUTORIAL COMPLETED BY: (Alex Levy)
+THIS TUTORIAL COMPLETED BY: (Alexander Levy)
 
 **MCRS Quantitative Methods Fall 2026**
 
