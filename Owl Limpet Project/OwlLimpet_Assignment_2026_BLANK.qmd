@@ -144,6 +144,9 @@ For the population density analysis, we will analyze data from Shaws Cove, Heisl
 
 ```{r}
 No_CDM_Sizes <- SizeData_2022_2025 |> 
+  filter(!is.na(transect_num))
+
+No_CDM_Sizes
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
@@ -155,12 +158,23 @@ No_CDM_Sizes
 
 # How many did we measure total, across both sites?
 No_CDM_Sizes |> 
+  nrow()
+
+#1746 total limpets
 
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
+  group_by(site) |>
+  count(shell_length_mm) |>
+  summarize(total_limpets = sum(n))
+
+# 484 @ Heisler, 793 @ Shaws Cove, 469 @ Treasure Cove
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
+  group_by(site, transect_num) |>
+  count(shell_length_mm) |>
+  summarize(total_limpets = sum(n))
 ```
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
@@ -169,8 +183,11 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 
 ```{r}
 Limpet_Density <- No_CDM_Sizes |> 
-  
-  
+  group_by(site, year, transect_num, transect_length_m) |>
+  count(transect_length_m) |>
+  summarize("Total_Limpets" = sum(n)) |>
+  mutate("density" = (Total_Limpets/(transect_length_m*2)))
+
 
 Limpet_Density
 ```
@@ -182,7 +199,9 @@ Do you see any patterns just from examining this table of values?
 What was the mean limpets per square meter across all sites? And the standard deviation? And standard error?
 
 ```{r}
+#Mean limpets per sq meter
 Limpet_Density |> 
+  mean(density, trim = 0, na.rm = FALSE)
 
 
 ```
