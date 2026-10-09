@@ -201,7 +201,11 @@ What was the mean limpets per square meter across all sites? And the standard de
 ```{r}
 #Mean limpets per sq meter
 Limpet_Density |> 
-  mean(density, trim = 0, na.rm = FALSE)
+  ungroup() |> 
+  summarize(mean_density = mean(Density,  na.rm = TRUE), 
+            sd_density = sd(Density,  na.rm = TRUE),
+            n = n(),
+            se_density = sd_density/sqrt(n))
 
 
 ```
@@ -211,11 +215,14 @@ Now create a summary table in which you calculate separate mean and standard dev
 ```{r}
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
 LimpetPopSummary <- Limpet_Density |>
+  group_by(site, year) |>
+  summarize(mean_density = mean(Density,  na.rm = TRUE), 
+            sd_density = sd(Density,  na.rm = TRUE),
+            n = n(),
+            se_density = sd_density/sqrt(n)) |>
+  mutate_at(vars(mean_density, sd_density, se_density), .funs = round, 1)
   
-  
-  
-  
- 
+
 # Display your summary nicely using kable(). 
 knitr::kable(LimpetPopSummary)
 ```
@@ -225,7 +232,11 @@ knitr::kable(LimpetPopSummary)
 Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axis to say "Limpets per square meter".
 
 ```{r}
-Limpet_Density |> ggplot() + 
+Limpet_Density |> 
+  
+  ggplot() + 
+  geom_boxplot(aes(x = site, y = Density, fill = year)) +
+                 labs(x = "Study Site", y ="Limpets per square meter")
  
   
 ```
@@ -233,17 +244,25 @@ Limpet_Density |> ggplot() +
 A column plot with errorbars, and fill = year, using your new `LimpetPopSummary` object. Make sure to label the y-axis appropriately.
 
 ```{r}
-LimpetPopSummary |> ggplot()+
+LimpetPopSummary |> 
+  ggplot() + aes(x = site, y = mean_density, fill = year) +
+  geom_col(position = position_dodge()) + 
+  geom_errorbar(aes(ymin = mean_density - se_density, 
+                    ymax = mean_density + se_density), 
+                position = position_dodge(0.9), 
+                width = 0.2) +
+  labs(x = "Study Site", y ="Limpets per square meter") 
  
-  
-  
-
+ 
 ```
 
 A `geom_point()` or `geom_jitter()`plot to visualize individual transect density observations
 
 ```{r}
-Limpet_Density |> ggplot() + 
+Limpet_Density |> 
+  ggplot() + aes(x = site, y = Density) +
+  geom_point() +
+  labs(x = "Study Site", y = "Density", title = "Transect Limpet Density by Study Site")
   
   
   
@@ -251,6 +270,8 @@ Limpet_Density |> ggplot() +
 ```
 
 Which plot do you find the most informative and useful and why?
+
+I think the boxplot is the most informative as it most effectively displays the ranges in density observed, which more clearly present quantiles/outliers.
 
 Based on these plots, does your data meet assumptions for a t-test?
 
@@ -270,6 +291,9 @@ Is it roughly the same so that we can compare? Is it enough to run a statistical
 
 ```{r}
 Limpet_Density |> 
+  group_by(site, year) |>
+  summarize(n = n())
+  
 ```
 
 #### 2.6. Does average number of owl limpets per square meter differ significantly between Heisler Park and Shaws Cove?
