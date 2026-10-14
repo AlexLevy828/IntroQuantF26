@@ -202,8 +202,8 @@ What was the mean limpets per square meter across all sites? And the standard de
 #Mean limpets per sq meter
 Limpet_Density |> 
   ungroup() |> 
-  summarize(mean_density = mean(Density,  na.rm = TRUE), 
-            sd_density = sd(Density,  na.rm = TRUE),
+  summarize(mean_density = mean(density,  na.rm = TRUE), 
+            sd_density = sd(density,  na.rm = TRUE),
             n = n(),
             se_density = sd_density/sqrt(n))
 
@@ -216,8 +216,8 @@ Now create a summary table in which you calculate separate mean and standard dev
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
 LimpetPopSummary <- Limpet_Density |>
   group_by(site, year) |>
-  summarize(mean_density = mean(Density,  na.rm = TRUE), 
-            sd_density = sd(Density,  na.rm = TRUE),
+  summarize(mean_density = mean(density,  na.rm = TRUE), 
+            sd_density = sd(density,  na.rm = TRUE),
             n = n(),
             se_density = sd_density/sqrt(n)) |>
   mutate_at(vars(mean_density, sd_density, se_density), .funs = round, 1)
@@ -235,7 +235,7 @@ Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axi
 Limpet_Density |> 
   
   ggplot() + 
-  geom_boxplot(aes(x = site, y = Density, fill = year)) +
+  geom_boxplot(aes(x = site, y = density, fill = year)) +
                  labs(x = "Study Site", y ="Limpets per square meter")
  
   
@@ -260,18 +260,19 @@ A `geom_point()` or `geom_jitter()`plot to visualize individual transect density
 
 ```{r}
 Limpet_Density |> 
-  ggplot() + aes(x = site, y = Density) +
+  ggplot() + aes(x = site, y = density) +
   geom_point() +
   labs(x = "Study Site", y = "Density", title = "Transect Limpet Density by Study Site")
   
   
   
   
+
 ```
 
 Which plot do you find the most informative and useful and why?
 
-I think the boxplot is the most informative as it most effectively displays the ranges in density observed, which more clearly present quantiles/outliers.
+I think the box plot is the most informative as it most effectively displays the ranges in density observed, which more clearly present quantiles/outliers.
 
 Based on these plots, does your data meet assumptions for a t-test?
 
@@ -289,6 +290,8 @@ T-Test assumptions (for a Student's T-test)
 
 Is it roughly the same so that we can compare? Is it enough to run a statistical test?
 
+Sample sizes range from 9 to 12 across years/sites,: they are roughly the same. There are enough samples to run a statistical test, however given the limited sample size it is possible that the samples do not accurately represent the greater population.
+
 ```{r}
 Limpet_Density |> 
   group_by(site, year) |>
@@ -303,20 +306,24 @@ Filter the data to only include those sites before putting it into the `t.test()
 ```{r t-test}
 # run a t-test on your count data from each site (Limpet_Density)
 ShawsHeislerDensity <- Limpet_Density |> 
+  filter(site != "Treasure Cove")
 
 
-t.test(     , data = ShawsHeislerDensity)
+t.test(density ~ site , data = ShawsHeislerDensity)
 
 ```
 
 Explain the results of this t-test. Are you surprised by this result, given the figure you made above? Why do you think the results are what they are?
 
+The t-test produces a p-value of 0.2629, which is not significant enough to reject the null hypothesis that limpet density varies between Heisler Park and Shaws Cove. These results are unsurprising, the graphs generated above show similar distributions of limpet density across both sites. While higher densities were recorded along transects at Shaws Cove, those measurements are likely outliers and do not represent the average population density. Rather, the density measurements across Shaws Cove and Heisler Park likely have similar means and are not statistically different.
+
 #### 2.7 Did Treasure Cove population density differ between the two sample years? Do a t-test and make a graph to complement presenting the result.
 
 ```{r}
 TC_density <- Limpet_Density |>
+  filter(site == "Treasure Cove")
 
-t.test(    )
+t.test(density ~ year, data = TC_density)
 ```
 
 Since there was no difference in means, we'll ignore year at Treasure Cove from now on and just pool our data to make it easier for ourselves.
@@ -337,18 +344,26 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 ```{r summary statistics }
 # generate a nice table (like you did for counts, using kable() and round digits) with the mean shell length, standard deviation, and sample size of each site. Ignore transect. 
 
-SizeData_2022_2025 |> 
+Limpet_Size <- SizeData_2022_2025 |> 
+  group_by(site, year) |>
+  summarize(sample_size = n(),
+            mean_length = mean(shell_length_mm,  na.rm = TRUE),
+            sd_length = sd(shell_length_mm,  na.rm = TRUE),
+            se_length = sd_length/sqrt(sample_size)) |>
+    mutate_at(vars(mean_length, sd_length), .funs = round, 1)
 
-  
+  knitr::kable(Limpet_Size)
 ```
 
 ##### 3.1.2 Graph the shell lengths at each site using a boxplot. What do you observe?
 
-```{r}
-ggplot(SizeData_2022_2025) +
+In general shell lengths appear to be highest at Treasure Cove and lowest at Shaws Cove. Shell lengths appear to be similar between Corona del Mar and Heisler Park
 
-  
-  
+```{r}
+SizeData_2022_2025 |>
+  ggplot() +
+  geom_boxplot(aes(x = site, y = shell_length_mm, fill = site)) +
+  labs(x = "Study Site", y ="Limpets Shell Length (mm)")
 ```
 
 #### 3.2. Is there a [statistically significant]{.underline} difference in [mean]{.underline} size between limpets measured at Treasure Cove (a relatively low-impact site) compared to CDM (a high impact site)?
@@ -369,17 +384,17 @@ T-Test assumptions (for a Student's T-test)
 ## Test for Homogeneity of Variance with an F-Test
 
 # create the appropriate filter to include only Treasure Cove and CDM data
-CDM_TC_Sizes <- SizeData_2022_2025 |> 
-
-  
+CDM_TC_Sizes <- SizeData_2022_2025 |>
+  filter(year != 2024) 
 # set the linear model for testing the assumptions
-model <- lm(   )
+  model <- lm(shell_length_mm ~ site, data = CDM_TC_Sizes) 
+  
 
 # Examine plot of Residuals vs. Fitted values
 plot(model, which = 1)
 
 # F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
-var.test(     )
+var.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
 
 # NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
 
@@ -403,7 +418,8 @@ Why will we not pay attention to this Shapiro-Wilk test result? Because the samp
 
 ```{r t-test or Wilcox}
 # calculate the t-test results
-t.test(      )
+t.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
+
 ```
 
 #### [3.3 Graph your results using a column plot with error bars for standard error]{.underline}
@@ -411,7 +427,13 @@ t.test(      )
 For full credit, have well centered error bars and professionally labeled axes (they should not say "mean", they should say the variable name).
 
 ```{r}
-CDM_TC_Sizes |>
+Limpet_Size |>
+  filter(year != 2024) |>
+  ggplot() +
+  aes(x = site, y = mean_length, fill = year) +
+  geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length), position = position_dodge(0.9)) +
+  labs(x = "Study Site", y = "Mean Shell Length (mm)")
   
 
 ```
@@ -419,6 +441,8 @@ CDM_TC_Sizes |>
 #### [3.4 - Interpret and explain the results of your test]{.underline}
 
 Are we pretty confident that these samples were drawn from different populations? Why is the standard error so small?
+
+Yes, these samples were likely drawn from different populations. The mean shell lengths found at each site do not overlap with the standard errors (error bars) of the other site. The standard error is small because shell lengths within populations at each site were generally clustered near the mean value across large sample sizes, thus our estimated mean shell lengths are likely representative of the larger population.
 
 #### 3.5 - EXTRA CREDIT: repeat this analysis to see if the same result holds for the comparison at Heisler Park (high impact site) vs. Shaws Cove (low impact site).
 
