@@ -800,7 +800,7 @@ All_Territories_area_mass |>
 
 #### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
 
-The above plots show there is a positive relationship between limpet size and territory area. Additionally, we can tell that limpet territory sizes are generally more variable at Treasure Cove than at Shaws Cove or Heisler Park. However, these variations may be more pronounced as there were many more samples collected at Treasure Cove than the other sites. We also observe that limpet territory area generally increases with mass regardless of habitat type. By plotting by site and year we can further explore this variation. While the limpets observed at Shaws Cove were generally smaller than the otehr sites we can see that they exhibit the strongest correlation with territory size. Additionally we can see that while the relationship between body mass and territory size remains similar, territory sizes decreased across years at Treasure cove.
+The above plots show there is a positive relationship between limpet size and territory area. Additionally, we can tell that limpet territory sizes are generally more variable at Treasure Cove than at Shaws Cove or Heisler Park. However, these variations may be more pronounced as there were many more samples collected at Treasure Cove than the other sites. We also observe that limpet territory area generally increases with mass regardless of habitat type. By plotting by site and year we can further explore this variation. While the limpets observed at Shaws Cove were generally smaller than the other sites we can see that they exhibit the strongest correlation with territory size. Additionally we can see that while the relationship between body mass and territory size remains similar, territory sizes decreased across years at Treasure cove.
 
 ```{r}
 
@@ -814,7 +814,9 @@ All_Territories_area_mass |>
   
   geom_smooth(method = "lm", se = FALSE) +
   
-  facet_wrap(site~year)
+  facet_wrap(site~year) +
+  
+  labs(x = "Log Limpet Mass (g)", y = "Log Territory Area (mm^2)", title = "Territory Area by Limpet Mass")
 ```
 
 #### 4.6. What important assumptions of tests of linear regression do these scatter plots fail? How can you tell?
@@ -825,6 +827,7 @@ These plots fail the assumption of homogeneity of variance. The fitted residuals
 
 # write a linear model for the relationship, then use the plot() function on the model object to show the residuals vs. fitted values and QQ plots to assess your regression. 
 
+#create linear model
 linear_model <- lm(size_mm ~ territory_area_mm2, data = All_Territories_area_mass)
 
 plot(linear_model)
@@ -872,7 +875,8 @@ All_Territories_area_mass |>
 ```{r}
 # write the linear model object and examine the residual and QQ plots
 log_model <- lm(log(territory_area_mm2) ~ log(mass_g), data = All_Territories_area_mass)
-  
+
+#view specific figures from model index  
 plot(log_model, which = 1)
 plot(log_model, which = 2)
 ```
@@ -903,18 +907,32 @@ FenbergTerr
 
 # Plot the Fenberg data with the log transformations
 FenbergTerr |>
-  ggplot() + 
+  ggplot() + aes(x = log(mass_g), y = log(area_mm2)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Log Limpet Mass (g)", y = "Log Territory Area (mm^2)", title = "Territory Area by Limpet Mass")
  
 
-# Find the slope and intercept of the best fit line
-Fenberg_model <- lm(   )
+##  Find the slope and intercept of the best fit line
 
+#create linear model for Fenberg data
+Fenberg_model <- lm(log(area_mm2) ~ log(mass_g), data = FenbergTerr)
+
+#create new variable with summary of results
+Fenberg_model_summary <- summary(Fenberg_model)
+
+#print summary
+Fenberg_model_summary
+
+# the slope formula for the Fenberg data is  y = 0.89162ln(x) + 7.90973
 
 ```
 
 Explain your findings!
 
-### Part 5: EXTRA CREDIT:
+The best fit line for the Fenberg data follows a very similar slope to the regression line we generated for our owl limpet data. As such, we can confirm the relationship between owl limpet size and territory areas identified in the original study. Owl limpet territory area is dependent on limpet size; larger limpets control larger territories.
+
+Part 5: EXTRA CREDIT:
 
 #### 5.1 Calculate the slope of best fit regression separately for each site.
 

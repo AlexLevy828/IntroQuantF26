@@ -1,0 +1,939 @@
+---
+title: "Owl Limpet Analysis BLANK"
+author: "Dr. Amy King-Henry"
+last modified: "October 4, 2026"
+format: html
+editor: visual
+---
+
+# Assessment of owl limpet (*Lottia gigantea*) populations at sites within Crystal Cove State Marine Conservation Area
+
+```{r load packages, include = FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+## Project Summary:
+
+*This analysis explores variation in limpet size, density, and territory patters using data collected between 2022-2025 across four study sites: Treasure Cove, Heisler Park, Corona del Mar, and Shaws Cove. Through our analysis we attempt to understand how limpet size varies within and between populations, how human activity may impact limpet populations, and how limpet size and habitat type effect territory size. Using R we visualized and manipulated our data to suit our research questions. We used statistical tests including t-tests, ANOVAs, and linear regressions to assess the significance of variation within our data and answer our research questions.*
+
+You have been given data from several locations and survey years:
+
+- 2022: Corona del Mar (CDM) - size data only, taken haphazardly
+
+- 2023: Treasure Cove (TC) - size data in 5-m transects, territories
+
+- 2024: Heisler Park and Shaws Cove - size data in variable length transects, territories
+
+- 2025: Treasure Cove (TC) - size data in 5-m transects, territories
+
+```{r}
+load(file = "Data/SizeData_2022_2025.Rdata")
+
+SizeData_2022_2025
+```
+
+## **Part 1: Data Exploration**
+
+### 1.1 What does the distribution of limpet sizes we measured at all sites look like? Make some histograms.
+
+Start with: `SizeData_2022_2025`
+
+Make a histogram with all the data.
+
+```{r}
+#call plotting function using limpet size data
+ggplot(SizeData_2022_2025) + 
+ 
+  #create histogram of limpet shell lengths across whole data set
+  geom_histogram(aes(x = shell_length_mm)) +
+ 
+  #create axis lables and title
+  labs(x = "Limpet Shell Length (mm)", y = "Number of Limpets", title = "Observed Limpet Shell Lengths")
+
+```
+
+Make a histogram with a `facet_wrap()` to separate the data from each site and year into separate graphs. What do you observe about the different histograms?
+
+I notice that substantially more limpets were observed at Shaws Cove than the other sites. Additionally, the limpets observed at Treasure Cove appear to be slightly larger than the other sites. Corona del Mar has the smallest distribution of observed limpet sizes.
+
+```{r}
+#using limpet data set
+SizeData_2022_2025|>
+  
+  #call plotting funcition and creat histogram of limpet shell lengths across whole data set
+  ggplot() + geom_histogram(aes(x = shell_length_mm)) +
+ 
+   #seperate graphs by site and year
+  facet_wrap(site ~ year) +
+ 
+   #create axis lables and title
+  labs(x = "Limpet Shell Length (mm)", y = "Number of Limpets", title = "Observed Limpet Shell Lengths by Site and Year")
+
+
+```
+
+We know our minimum size cut-off varied in different years of the surveys, and some teams just didn't follow directions. Filter out any observations smaller than 15 cm.
+
+```{r}
+#call limpet size data and create new data frame
+SizeData_2022_2025 <- SizeData_2022_2025 |> 
+  
+  #filter data to remove shell lengths below 15mm
+  filter(shell_length_mm > 15)
+
+#display limpet size data
+SizeData_2022_2025
+
+```
+
+### 1.2 How long were the transects at each site?
+
+Make a table using `select()` and `distinct()` to only show the length of each transect (each unique number) at each site. Sort by site and transect number.
+
+```{r}
+#call limpet size data and create new data frame 
+TransectLengths <- SizeData_2022_2025 |> 
+  
+  #filter data frame to only include site, trnasect number, and trnasect length data
+  select(site, transect_num, transect_length_m) |>
+ 
+  #refine data to only inlude one input for each distinct transect
+  distinct(site, transect_num, transect_length_m) |>
+  
+  #sort data to be ordered by transet number by site
+  arrange(site, transect_num) |>
+  
+  #remove data that does not include a defined transect length
+  filter(!is.na(transect_length_m))
+
+#view new data frame
+TransectLengths
+```
+
+Visualize the transect lengths two different ways.
+
+- Make one boxplot with transect length on the y-axis, and site on the x-axis.
+
+- Use `geom_point()` to make a scatter plot with the same axes.
+
+- combine the two so that the points are red and overlay the boxplot graph.
+
+```{r}
+##BOXPLOT##
+#call dataframe
+TransectLengths |> 
+  
+  #call plotting function and make a boxplot with study sites on the x-axis and trnasect lengths on the y-axis
+  ggplot() + geom_boxplot(aes(x = site, y = transect_length_m)) +
+  
+  #add axis labels and title
+  labs(x = "Study Site", y = "Transect Length", title = "Transect Length by Study Site")
+
+
+##SCATTER PLOT##  
+#call dataframe
+TransectLengths |> 
+  #call plotting function and make a scatterplot with study sites on the x-axis and trnasect lengths on the y-axis
+  ggplot() + geom_point(aes(x = site, y = transect_length_m)) +
+  
+  #add axis labels and title
+  labs(x = "Study Site", y = "Transect Length", title = "Transect Length by Study Site")
+
+
+##COMBINED GRAPHS##
+#call dataframe
+TransectLengths |> 
+  #call plotting function and make both a boxplot and scatterplot with study sites on the x-axis and trnasect lengths on the y-axis
+  ggplot() + 
+  geom_boxplot(aes(x = site, y = transect_length_m)) +
+  
+  #specify plotted points are red
+  geom_point(aes(x = site, y = transect_length_m), color = 'red') +
+ 
+   #add axis labels and title
+  labs(x = "Study Site", y = "Transect Length", title = "Transect Length by Study Site")
+
+  
+  
+```
+
+THINKING QUESTIONS: Do we have the number of transects that we expect to in our data set? Are they all the same length? Do our numbers make sense?
+
+ANSWER: Our methods have been a little inconsistent. We used different methods at Shaws Cove and Heisler than we did at Treasure Cove. At Treasure Cove, we have used 5 meter long set length transects. At Shaws Cove and Heisler, we ran transects of variable length from the high tide line to the lowest accessible part of the intertidal. At both sites limpets were measured one meter from the tape on either side. In order to compare population density, we will need to eventually divide by transect length/area to get limpets per square meter.
+
+#### 1.3 Make two more graphs of your choosing to explore the data based on some other columns. Write a sentence under each that explains what your graph shows.
+
+Graph 1:
+
+```{r}
+#call dataframe
+SizeData_2022_2025 |>
+  
+  #filter data to remove entries that do not specify habitat type
+  filter(!is.na(habitat)) |>
+  
+  #call plotting function and create histogram with limpet shell on the x-axis
+  ggplot() + geom_histogram(aes(x = shell_length_mm)) + 
+  
+  #create seperate histograms for both habitat types
+  facet_wrap(~habitat) +
+  
+  #add axis labels and title
+  labs(x = "Limpet Shell Length (mm)", y = "Number of Limpets", title = "Limpet Shell Lengths Observed by Habitat Type")
+
+```
+
+This shows: This graph shows the distribution of shell sizes observed in both habitat types across all study sites.
+
+Graph 2:
+
+```{r}
+#call dataframe
+SizeData_2022_2025 |>
+  
+  #filter data to remove entries that do not include a specificed transect number
+  filter(!is.na(transect_num)) |>
+  
+  #call plotting funciton and create a scatter plot of shell lengths (y-axis) by study site (x-axis)
+  ggplot() + geom_point(aes(x = transect_num, y = shell_length_mm)) + 
+  
+  #create seperate graphs for each study site
+  facet_wrap(~site) + 
+  
+  #add axis labels and title
+  labs(x = "Transect Number", y = "Limpet Shell Leength (mm)", title = "Transect Specific Limpet Shell Length Observations")
+
+```
+
+This shows: How shell size varies between different transects within different sites.
+
+## Part 2: Population Density
+
+For the population density analysis, we will analyze data from Shaws Cove, Heisler Park, and Treasure Cove. Create a data frame that excludes the Corona del Mar data, as that site did not have area measured.
+
+```{r}
+#call dataset and create new dataframe
+No_CDM_Sizes <- SizeData_2022_2025 |> 
+  
+  #filter data to remove entries that do not include specific transect data
+  filter(!is.na(transect_num))
+
+#view new dataframe
+No_CDM_Sizes
+```
+
+#### 2.1. How many limpets did we measure at each site in each year for sizes?
+
+Use nrow(), group_by() and count() to tally the limpet observations at each transect. We used the same transect numbers at Shaws and Heisler, so group_by() site as well.
+
+```{r}
+No_CDM_Sizes
+
+# How many did we measure total, across both sites?
+#call dataframe
+No_CDM_Sizes |>
+  
+  #count total rows (unique samples)
+  nrow()
+
+## We measured 1746 total limpets across both sites
+
+
+## How many did we measure at each site? 
+#call dataframe
+No_CDM_Sizes |> 
+  
+  #group data into new subset by study site
+  group_by(site) |>
+  
+  #count the total number of limpets of each size observed at each site 
+  count(shell_length_mm) |>
+  
+  #add up all limpet counts at each site 
+  summarise(total_limpets = sum(n))
+
+## We measures 484 owl limpets Heisler Park, 793 owl limpets Shaws Cove, and 469 owl limpets at Treasure Cove.
+
+
+## How many did we measure in each transect? 
+#call dataframe
+No_CDM_Sizes |>
+  
+  #create new subgroups by study and transect number
+  group_by(site, transect_num) |>
+  
+  #count the total number of limpets of each size observed along every unique transect
+  count(shell_length_mm) |>
+  
+  # compress data, create new column and add up total limpets of each size observed along each transect to find total limpets observed along transect
+  summarise(total_limpets = sum(n)) |>
+  
+  #organize data by site and transect number
+  arrange(site, transect_num)
+
+## We measured limpets along 30 unique transects, the above code prints all 30 limpet counts by transect. The most limpets (199) were measured along transect 2 at Shaws Cove. The fewest limpets (7) were measured along transect 12 at Treasure Cove. 
+```
+
+#### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
+
+Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density,* that calculates the limpets per square meter for each transect. Remember that the transect included 1 meter on either side of the tape (total of 2 meters wide). Make sure to maintain the separation in year for the two Treasure Cove surveys using the `group_by()` function.
+
+```{r}
+#call data set and create new dataframe
+Limpet_Density <- No_CDM_Sizes |> 
+  
+  #create new subgroups by study site, transect number, and transect length
+  group_by(site, year, transect_num, transect_length_m) |>
+  
+  #organize data by site and transect number
+  arrange(site, transect_num) |>
+  
+  #count total number of limpets oberserved along transects of different length. 
+  #Transect numbers overlap across sites, but transects with overlapping numbers have different lengths by site
+  count(transect_length_m) |>
+  
+  # compress data and add column that includes the total number of limpets observed along each transect
+  summarise("Total_Limpets" = sum(n)) |>
+  
+  #add column to include density, density is total limpets over area of transect. Transects are two meters wide, area of transect is length of transect times two
+  mutate("density" = (Total_Limpets/(transect_length_m*2)))
+
+#view new dataframe
+Limpet_Density
+```
+
+Do you see any patterns just from examining this table of values?
+
+Limpet density at Shaws Cove appears to vary more than at the other sites. Limpet densities generally appear to be lowest at Treasure Cove.
+
+#### 2.2. Calculating mean and standard error of population density
+
+What was the mean limpets per square meter across all sites? And the standard deviation? And standard error?
+
+```{r}
+#Mean limpets per sq meter
+#call dataframe
+Limpet_Density |> 
+  
+  #remove previous subgroupings
+  ungroup() |> 
+  
+  # compress data and create new columns. calculate the mean, standard deviation, and standard error of limpet densities calculated across all sites/transects
+  summarise(mean_density = mean(density,  na.rm = TRUE), 
+            sd_density = sd(density,  na.rm = TRUE),
+            n = n(),
+            se_density = sd_density/sqrt(n))
+
+
+```
+
+Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
+
+```{r}
+# use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
+#call dataframe and create new dataframe
+LimpetPopSummary <- Limpet_Density |>
+  
+  #create subgroups by site and year
+  group_by(site, year) |>
+  
+  #compress data and create new columns and calculate the mean, standard deviation, and standard error of limpet densities calculated across all sites/transects
+  summarise(mean_density = mean(density,  na.rm = TRUE), 
+            sd_density = sd(density,  na.rm = TRUE),
+            n = n(),
+            se_density = sd_density/sqrt(n)) |>
+  
+  #edit data to round values to single decimals 
+  mutate_at(vars(mean_density, sd_density, se_density), .funs = round, 1)
+  
+
+# Display your summary nicely using kable(). 
+knitr::kable(LimpetPopSummary)
+```
+
+#### 2.4 Make three graphs to visualize the difference in density between the two sites.
+
+Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axis to say "Limpets per square meter".
+
+```{r}
+#call dataframe
+Limpet_Density |> 
+  
+  #call plotting funciton and create a boxplot with study sites on the x-axis and density on the y-axis
+  ggplot() + geom_boxplot(aes(x = site, y = density, 
+  
+  #seperate and color boxs by year                            
+  fill = year)) +
+  
+  #add axis lables and title
+  labs(x = "Study Site", y ="Limpets per square meter", title = "Observed Limpet Densities by Study Site")
+ 
+  
+```
+
+A column plot with errorbars, and fill = year, using your new `LimpetPopSummary` object. Make sure to label the y-axis appropriately.
+
+```{r}
+#call dataframe
+LimpetPopSummary |> 
+  
+  #call plotting function and set global aesthetic with study sites on the x-axis and density on the y-axis. Seperate and color data by year
+  ggplot() + aes(x = site, y = mean_density, fill = year) +
+  
+  #create a column plot. seperate columns by site AND year
+  geom_col(position = position_dodge(1)) + 
+  
+  #add error bars that extend one standard error away from the mean
+  geom_errorbar(aes(ymin = mean_density - se_density, 
+                    ymax = mean_density + se_density), 
+                position = position_dodge(0.9), 
+                width = 0.2) +
+  
+  #add axis labels and title
+  labs(x = "Study Site", y ="Limpets per square meter", title = "Observed Limpet Densities by Study Site") 
+ 
+ 
+```
+
+A `geom_point()` or `geom_jitter()`plot to visualize individual transect density observations
+
+```{r}
+#call datafram
+Limpet_Density |> 
+  
+  #call plotting function and set global aesthetic with study sites on the x-axis and density on the y-axis.
+  ggplot() + aes(x = site, y = density, color = year) +
+  
+  #create scatter plot. seperate columns by site AND year
+  geom_point(position = position_dodge(1)) +
+  
+  #add axis labels and title 
+  labs(x = "Study Site", y = "Density", title = "Transect Limpet Density by Study Site")
+  
+  
+  
+  
+
+```
+
+Which plot do you find the most informative and useful and why?
+
+I think the box plot is the most informative as it most clearly and effectily presents the mean density and range of densities observed at each site. The plot also represents outliers.
+
+Based on these plots, does your data meet assumptions for a t-test?
+
+T-Test assumptions (for a Student's T-test)
+
+- Are the data continuous (i.e., not categorical/discrete)? (YES)
+
+- Have the sample data been randomly sampled from a population? (YES)
+
+- Is there homogeneity of variance (i.e., the variability of the data in each group is similar)? (YES)
+
+- Is the distribution of the model residuals approximately normal?
+
+#### 2.5 What is the sample size (of transects) for each site/year for our study of limpet population density?
+
+Is it roughly the same so that we can compare? Is it enough to run a statistical test?
+
+Sample sizes range from 9 to 12 across years and sites,: they are roughly the same. There are enough samples to run a statistical test, however given the limited sample size it is possible that the samples do not accurately represent the greater population.
+
+```{r}
+#call dataframe
+Limpet_Density |> 
+  
+  #create subgroups by site and year
+  group_by(site, year) |>
+  
+  #count total number of unique transect densities from each site during each year
+  summarise(n = n())
+  
+```
+
+#### 2.6. Does average number of owl limpets per square meter differ significantly between Heisler Park and Shaws Cove?
+
+Filter the data to only include those sites before putting it into the `t.test()` function. These are a good comparison because they were measured in the same year with the same survey methods.
+
+```{r t-test}
+# run a t-test on your count data from each site (Limpet_Density)
+
+#call dataframe and create new dataframe
+ShawsHeislerDensity <- Limpet_Density |> 
+  
+  #filter data to remove all entries from Treasure Cove, only Heisler Park and Shaws Cove will remain
+  filter(site != "Treasure Cove")
+
+#run a t-test on new data frame comparing densities across sites
+t.test(density ~ site , data = ShawsHeislerDensity)
+
+```
+
+Explain the results of this t-test. Are you surprised by this result, given the figure you made above? Why do you think the results are what they are?
+
+The t-test produces a p-value of 0.2629, which is not significant enough to reject the null hypothesis that limpet densities are the same at Heisler Park and Shaws Cove. These results are unsurprising, the graphs generated above show similar distributions of limpet density across both sites. While higher densities were recorded along transects at Shaws Cove, those measurements are likely outliers and do not represent the average population density. Rather, the density measurements across Shaws Cove and Heisler Park likely have similar means and are not statistically different.
+
+#### 2.7 Did Treasure Cove population density differ between the two sample years? Do a t-test and make a graph to complement presenting the result.
+
+The population density at Treasure Cove did not significantly differ between the two sample years (p = 0.4).
+
+```{r}
+#call dataframe and create new dataframe
+TC_density <- Limpet_Density |>
+  
+  #filter data to include only data from Treasure Cove
+  filter(site == "Treasure Cove")
+
+#conduct t-test comparing limpet density at Treasure Cove across years
+t.test(density ~ year, data = TC_density)
+
+TC_density |>
+  ggplot() + aes(x = year, y = density) +
+  geom_boxplot() +
+  labs(x = "Sample Year", y = "Limpets per Square Meter", title = "Limpet Density by Year at Treasure Cove")
+```
+
+Since there was no difference in means, we'll ignore year at Treasure Cove from now on and just pool our data to make it easier for ourselves.
+
+#### 2.8 EXTRA CREDIT: Do an ANOVA comparing Shaws, Heisler, and Treasure Cove 2025 density data (exclude 2023 so that the sample size is similar between all three). Use a Tukey post-hoc test. Explain the results.
+
+```{r}
+
+
+```
+
+## Part 3: Size
+
+#### 3.1 Summary Statistics
+
+##### 3.1.1 How variable were limpet shell lengths at each site and sample year? What is the sample size at each site?
+
+```{r summary statistics }
+# generate a nice table (like you did for counts, using kable() and round digits) with the mean shell length, standard deviation, and sample size of each site. Ignore transect. 
+
+#call dataframe and create new dataframe
+Limpet_Size <- SizeData_2022_2025 |> 
+  
+  #create subgroups by site and year
+  group_by(site, year) |>
+  
+  #compress data and create new columns that include the total number of limpets observed, mean shell length, and shell length standard deviation and error.
+  summarise(sample_size = n(),
+            mean_length = mean(shell_length_mm,  na.rm = TRUE),
+            sd_length = sd(shell_length_mm,  na.rm = TRUE),
+            se_length = sd_length/sqrt(sample_size)) |>
+  
+  #round values to single decimcal place
+    mutate_at(vars(mean_length, sd_length, se_length), .funs = round, 1)
+
+#make clean table
+  knitr::kable(Limpet_Size)
+```
+
+##### 3.1.2 Graph the shell lengths at each site using a boxplot. What do you observe?
+
+In general shell lengths appear to be highest at Treasure Cove and lowest at Shaws Cove. Shell lengths appear to be similar between Corona del Mar and Heisler Park
+
+```{r}
+#call dataframe
+SizeData_2022_2025 |>
+  
+  #call plotting function
+  ggplot() +
+  
+  #create boxplot with study site on the x-axis and shell length on the y-axis. Make each site different colors
+  geom_boxplot(aes(x = site, y = shell_length_mm, fill = site)) +
+  
+  #add axis labels and title 
+  labs(x = "Study Site", y ="Limpets Shell Length (mm)")
+```
+
+#### 3.2. Is there a [statistically significant]{.underline} difference in [mean]{.underline} size between limpets measured at Treasure Cove (a relatively low-impact site) compared to CDM (a high impact site)?
+
+We have a much larger sample size for shell lengths than we did for density, so we can apply our tests of assumptions more rigorously and demonstrate our various tests.
+
+##### 3.2.1 [Determine whether a parametric or non-parametric test is appropriate.]{.underline}
+
+T-Test assumptions (for a Student's T-test)
+
+- Are the data continuous (i.e., not categorical/discrete)? **YES**
+
+- Have the sample data been randomly sampled from a population? **(Yes)**
+
+- Is there homogeneity of variance (i.e., the variability of the data in each group is similar)? **NO**
+
+```{r}
+## Test for Homogeneity of Variance with an F-Test
+
+## create the appropriate filter to include only Treasure Cove and CDM data
+#call dataframe and create new dataframe
+CDM_TC_Sizes <- SizeData_2022_2025 |>
+  
+  #filter data to remove data from Heisler Park and Shaws Cove (data collected in 2024)
+  filter(year != 2024) 
+
+# set the linear model for testing the assumptions
+  model <- lm(shell_length_mm ~ site, data = CDM_TC_Sizes) 
+  
+
+# Examine plot of Residuals vs. Fitted values
+plot(model, which = 1)
+
+# F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
+var.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
+
+# NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
+
+```
+
+- Is the distribution of the model residuals approximately normal?
+
+```{r}
+## Test for normality
+
+# examine a QQ-plot
+plot(model, which = 2)
+
+# conduct a Shapiro-Wilk test on the residuals
+shapiro.test(model$residuals)
+```
+
+Why will we not pay attention to this Shapiro-Wilk test result? Because the sample size is very large and Shapiro-Wilk is overly sensitive (gives false positives) at large sample sizes.
+
+##### 3.2.2 [Conduct the test]{.underline}
+
+```{r t-test or Wilcox}
+## calculate the t-test results
+#run t-test comparing shell lengths across sites
+t.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
+
+```
+
+#### [3.3 Graph your results using a column plot with error bars for standard error]{.underline}
+
+For full credit, have well centered error bars and professionally labeled axes (they should not say "mean", they should say the variable name).
+
+```{r}
+#call dataframe
+Limpet_Size |>
+  
+  #filter data to remove data from Heisler Park and Shaws Cove (data collected in 2024)
+  filter(year != 2024) |>
+  
+  #call plotting funciton and set global aesthetic with study sites on the x-axis and mean shell length on the y-axis
+  ggplot() + aes(x = site, y = mean_length, fill = year) +
+  
+  #create a column plot with data seperated by site AND year
+  geom_col(position = position_dodge(1)) +
+  
+  #add error bars that extend one standard error way from the mean shell length
+  geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length),
+                #place error bars seperately on each column
+                position = position_dodge(1)) +
+  
+  #add axis labels and title 
+  labs(x = "Study Site", y = "Average Shell Length (mm)", title = "Average Limpet Shell Length Corona del Mar vs. Treasure Cove")
+  
+
+```
+
+#### [3.4 - Interpret and explain the results of your test]{.underline}
+
+Are we pretty confident that these samples were drawn from different populations? Why is the standard error so small?
+
+Yes, these samples were likely drawn from different populations. The t-test results indicate that the variation between sites is statistically significant ((p = 2.2\*e\^-16). Additionally, when visualized the mean shell lengths found at each site do not overlap with the standard errors (error bars) of the other site. The standard error is small because shell lengths within populations at each site were generally clustered near the mean value across large sample sizes, thus our estimated mean shell lengths are likely representative of the larger population.
+
+#### 3.5 - EXTRA CREDIT: repeat this analysis to see if the same result holds for the comparison at Heisler Park (high impact site) vs. Shaws Cove (low impact site).
+
+If you would like to test whether size differs by predicted human impact, at CDM and TC "near" means high impact and "far" means low impact. Heisler was our high impact site and Shaws was our low impact site.
+
+```{r}
+#call dataframe and create new dataframe
+HP_SC_Sizes <- SizeData_2022_2025 |>
+  
+  #filter data to remove data from Heisler Park and Shaws Cove (data collected in 2024)
+  filter(year == 2024) 
+
+# set the linear model for testing the assumptions
+model <- lm(shell_length_mm ~ site, data = HP_SC_Sizes) 
+
+
+# Examine plot of Residuals vs. Fitted values
+plot(model, which = 1)
+
+# F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
+var.test(shell_length_mm ~ site, data = HP_SC_Sizes)
+
+## Test for normality
+
+# examine a QQ-plot
+plot(model, which = 2)
+
+# conduct a Shapiro-Wilk test on the residuals
+shapiro.test(model$residuals)
+
+#conduct t-test comparting shell lengths across sites 
+t.test(shell_length_mm ~ site, data = HP_SC_Sizes)
+```
+
+#### 3.6. MORE EXTRA CREDIT: conduct an ANOVA to test for differences in shell length between all four sites. Show your tests for all assumptions and make a graph.
+
+```{r}
+
+```
+
+## Part 4: Territory Size
+
+#### 4.1 Territory Data
+
+Clean up and combine the 2023, 2024 and 2025 data for Territories:
+
+```{r}
+load(file = "Data/All_Territories.Rdata")
+
+load(file = "Data/FenbergTerr.Rdata")
+```
+
+#### 4.2 How many limpet territories did we measure?
+
+```{r}
+## How many territories were measured at each site in each year? 
+All_Territories |> 
+  
+  #create subgroups by study site and year
+  group_by(site, year) |>
+  
+  #compress data to show total number of territory observations made at each site
+  summarise(num_territories = n())
+
+## 54 limpet territories were measured at Heisler Park in 2024, 83 territories were measured at Shaws Cove in 2024, 51 territories were measured at Treasure Cove in 2023, and 190 territories were measured at Treasue Cove in 2025.
+```
+
+#### 4.3 Calculate meaningful variables from our measured values
+
+Create new columns for:
+
+- territory area in square millimeters from the "`numbsquares`" column
+
+- Limpet body mass from shell length (equation below is from Fenberg et al. 2013).
+
+```{r}
+#call dataframe and create new data frame
+All_Territories_area_mass <- All_Territories |> 
+  
+  # create a new column for territory area in mm^2 using the "numbsquares" column
+         # mesh = 19 mm x 19 mm 
+  mutate(territory_area_mm2 = numbsquares * 19 * 19) |>
+
+  # create a new column for limpet body mass
+  # formula: mass_g = 0.00009*length ^ 3.0471
+  mutate(mass_g = 0.00009 * (size_mm ^ 3.0471))
+
+All_Territories_area_mass
+```
+
+#### 4.4. Is there a relationship between limpet size and territory size?
+
+Yes, there appears to be a positive relationship between limpet size and territory area. Limpet mass is also positively related to territory size.
+
+Explore the relationship between mass_g, and area_mm2 using scatter plots.
+
+```{r}
+# plot size_mm vs area_mm2 scatterplot with best fit regression line, no SE zone, not separated by site
+
+#call dataframe
+All_Territories_area_mass |> 
+  
+  #call plotting function and set global aesthetic with limpet size on x-axis and territory area on y-axis
+  ggplot() + aes(x = size_mm, y = log(territory_area_mm2)) +
+  
+  #create scatterplot
+  geom_point() +
+  
+  #add best fit regression line, specify no standard error
+  geom_smooth(method = "lm", se = FALSE) +
+
+  #add axis labels and titel
+  labs(x = "Limpet Size (mm)", y = "Territory Area (mm^2)", title = "Log Territory Area by Limpet Size")
+```
+
+```{r}
+## Scatter plot with site mapped to color
+
+  #call dataframe
+  All_Territories_area_mass |> 
+  
+  #call plotting function and set global aesthetic with limpet size on x-axis and territory area on y-axis
+  ggplot() + aes(x = size_mm, y = log(territory_area_mm2)) +
+  
+  #create scatterplot with data from each site plotted in different color
+  geom_point(aes(color = site)) +
+  
+  #add best fit regression line, specify no standard error
+  geom_smooth(method = "lm", se = FALSE) +
+  
+  #add axis labels and titel
+  labs(x = "Limpet Size (mm)", y = "Territory Area (mm^2)", title = "Log Territory Area by Limpet Size")
+```
+
+```{r}
+#  mass_g vs. area_mm2 scatterplot with best fit regression line, no SE zone, faceted by habitat
+
+#call dataframe
+All_Territories_area_mass |> 
+  
+  #call plotting function and set global aesthetic with limpet mass on x-axis and territory area on y-axis
+  ggplot() + aes(x = mass_g, y = log(territory_area_mm2), color = site) +
+  
+  #create scatterplot
+  geom_point() +
+  
+  #add best fit regression line, specify no standard error
+  geom_smooth(method = "lm", se = FALSE) +
+  
+  #create seperate graphs for each habitat
+  facet_wrap(~habitat) +
+  
+  #add axis labels and titel
+  labs(x = "Limpet Body Mass (g)", y = "Territory Area (mm^2)", title = "Log Territory Area by Limpet Size Across Habitat Types")
+```
+
+#### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
+
+The above plots show there is a positive relationship between limpet size and territory area. Additionally, we can tell that limpet territory sizes are generally more variable at Treasure Cove than at Shaws Cove or Heisler Park. However, these variations may be more pronounced as there were many more samples collected at Treasure Cove than the other sites. We also observe that limpet territory area generally increases with mass regardless of habitat type. By plotting by site and year we can further explore this variation. While the limpets observed at Shaws Cove were generally smaller than the other sites we can see that they exhibit the strongest correlation with territory size. Additionally we can see that while the relationship between body mass and territory size remains similar, territory sizes decreased across years at Treasure cove.
+
+```{r}
+
+#call dataframe
+All_Territories_area_mass |> 
+  
+  #call plotting function and set global aesthetic with limpet mass on x-axis and territory area on y-axis
+  ggplot() + aes(x = mass_g, y = log(territory_area_mm2)) +
+  
+  geom_point() +
+  
+  geom_smooth(method = "lm", se = FALSE) +
+  
+  facet_wrap(site~year) +
+  
+  labs(x = "Log Limpet Mass (g)", y = "Log Territory Area (mm^2)", title = "Territory Area by Limpet Mass")
+```
+
+#### 4.6. What important assumptions of tests of linear regression do these scatter plots fail? How can you tell?
+
+These plots fail the assumption of homogeneity of variance. The fitted residuals plotted below are clustered on the left and are not equally distributed.
+
+```{r}
+
+# write a linear model for the relationship, then use the plot() function on the model object to show the residuals vs. fitted values and QQ plots to assess your regression. 
+
+#create linear model
+linear_model <- lm(size_mm ~ territory_area_mm2, data = All_Territories_area_mass)
+
+plot(linear_model)
+```
+
+One way to transform data that has this shape is to apply a log-transformation. Logarithmic relationships are common in biology for mass, volume, or other spatial relationships.
+
+#### 4.7. Plot the relationship between log-transformed mass and log-transformed area. Does this relationship meet assumptions?
+
+Yes, the log-transformed relationship does meet the assumptions.
+
+```{r scatterplot with regression line}
+# plot a scatterplot log area on y axis by log mass_g on x axis, best fit regression line but no SE interval
+
+#Plot histograms to assess normality
+All_Territories_area_mass |> 
+  
+  ggplot() + aes(x = log(mass_g)) +
+
+  geom_histogram()
+
+All_Territories_area_mass |> 
+  
+  ggplot() + aes(x = log(territory_area_mm2)) +
+  
+  geom_histogram()
+  
+#call dataframe
+All_Territories_area_mass |> 
+  
+  #call plotting function and set global aesthetic so log limpet mass is on the x-axis and log territory arae is on the y-axis
+  ggplot() + aes(x = log(mass_g), y = log(territory_area_mm2)) +
+  
+  #create scaterplot
+  geom_point() +
+  
+  #add best fit regression line, specify no standard error
+  geom_smooth(method ="lm", se = FALSE) +
+  
+  #add axis-labels and title 
+  labs(x = "Log Limpet Mass (g)", y = "Log Territory Area (mm^2)", title = "Territory Area by Limpet Mass")
+
+```
+
+```{r}
+# write the linear model object and examine the residual and QQ plots
+log_model <- lm(log(territory_area_mm2) ~ log(mass_g), data = All_Territories_area_mass)
+
+#view specific figures from model index  
+plot(log_model, which = 1)
+plot(log_model, which = 2)
+```
+
+#### 4.8. What is the formula for the best fit line for the relationship between territory size and body mass in owl limpets?
+
+```{r linear regression test summary}
+#create variable for regression model
+log_model_lm <- summary(log_model)
+
+log_model_lm
+
+## the slope formula is y = 0.8903ln(x) + 8.2116
+```
+
+**The formula for the best fit line can be extracted from the model summary. The two values in the Estimate column are the coefficients - (Intercept) gives the y-intercept, and the variable gives the slope.**
+
+**log(area) = 0.8903 \* log(mass) + 8.2116**
+
+**or**
+
+**Y = 0.8903 + 8.2116**
+
+#### 4.9 Compare the relationship we found to the original study.
+
+```{r}
+FenbergTerr
+
+# Plot the Fenberg data with the log transformations
+FenbergTerr |>
+  ggplot() + aes(x = log(mass_g), y = log(area_mm2)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Log Limpet Mass (g)", y = "Log Territory Area (mm^2)", title = "Territory Area by Limpet Mass")
+ 
+
+##  Find the slope and intercept of the best fit line
+
+#create linear model for Fenberg data
+Fenberg_model <- lm(log(area_mm2) ~ log(mass_g), data = FenbergTerr)
+
+#create new variable with summary of results
+Fenberg_model_summary <- summary(Fenberg_model)
+
+#print summary
+Fenberg_model_summary
+
+# the slope formula for the Fenberg data is  y = 0.89162ln(x) + 7.90973
+
+```
+
+Explain your findings!
+
+The best fit line for the Fenberg data follows a very similar slope to the regression line we generated for our owl limpet data. As such, we can confirm the relationship between owl limpet size and territory areas identified in the original study. Owl limpet territory area is dependent on limpet size; larger limpets control larger territories.
+
+Part 5: EXTRA CREDIT:
+
+#### 5.1 Calculate the slope of best fit regression separately for each site.
+
+#### 5.2 Explore some aspect of the data you find interesting and ask a unique question.
