@@ -546,6 +546,8 @@ SizeData_2022_2025 |>
   
   #add axis labels and title 
   labs(x = "Study Site", y ="Limpets Shell Length (mm)")
+
+
 ```
 
 #### 3.2. Is there a [statistically significant]{.underline} difference in [mean]{.underline} size between limpets measured at Treasure Cove (a relatively low-impact site) compared to CDM (a high impact site)?
@@ -752,6 +754,7 @@ All_Territories_area_mass |>
   
   #add best fit regression line, specify no standard error
   geom_smooth(method = "lm", se = FALSE) +
+  
 
   #add axis labels and titel
   labs(x = "Limpet Size (mm)", y = "Territory Area (mm^2)", title = "Log Territory Area by Limpet Size")
@@ -937,3 +940,76 @@ Part 5: EXTRA CREDIT:
 #### 5.1 Calculate the slope of best fit regression separately for each site.
 
 #### 5.2 Explore some aspect of the data you find interesting and ask a unique question.
+
+```{r}
+#size/territory varie by human impact
+##Heisler Park vs Shaws Cove
+#call dataframe and create new dataframe
+HP_SC_Sizes <- All_Territories_area_mass |>
+  
+  #filter data to remove data from Heisler Park and Shaws Cove (data collected in 2024)
+  filter(year == 2024) 
+
+# set the linear model for testing the assumptions
+model <- lm(territory_area_mm2 ~ site, data = HP_SC_Sizes) 
+
+
+# Examine plot of Residuals vs. Fitted values
+plot(model, which = 1)
+
+# F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
+var.test(territory_area_mm2 ~ site, data = HP_SC_Sizes)
+
+## Test for normality
+
+# examine a QQ-plot
+plot(model, which = 2)
+
+# conduct a Shapiro-Wilk test on the residuals
+shapiro.test(model$residuals)
+
+#conduct t-test comparting shell lengths across sites 
+t.test(territory_area_mm2 ~ site, data = HP_SC_Sizes)
+
+##CDM vs Trease Cove
+#call dataframe and create new dataframe
+CDC_TC_Sizes <- All_Territories_area_mass |>
+  
+  #filter data to remove data from Heisler Park and Shaws Cove (data collected in 2024)
+  filter(year != 2024) 
+
+# set the linear model for testing the assumptions
+model <- lm(territory_area_mm2 ~ location, data = CDC_TC_Sizes) 
+
+
+# Examine plot of Residuals vs. Fitted values
+plot(model, which = 1)
+
+# F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
+var.test(territory_area_mm2 ~ location, data = CDC_TC_Sizes)
+
+## Test for normality
+
+# examine a QQ-plot
+plot(model, which = 2)
+
+# conduct a Shapiro-Wilk test on the residuals
+shapiro.test(model$residuals)
+
+#conduct t-test comparting shell lengths across sites 
+t.test(territory_area_mm2 ~ location, data = CDC_TC_Sizes)
+```
+
+```{r}
+#Owl limpet size vareis by habitat type
+filtered_area_mass <- All_Territories_area_mass |>
+  filter(!is.na(habitat))
+  
+var.test(territory_area_mm2 ~ habitat, data = filtered_area_mass)
+
+#p-value = 0.0001004; significant size variation by habitat type
+
+All_Territories_area_mass |>
+  ggplot() + aes(x = habitat, y = size_mm) +
+  geom_boxplot()
+```
