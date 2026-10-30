@@ -8,7 +8,7 @@ editor: visual
 
 ```{r}
 install.packages("pwr")
-
+install.packages("patchwork")
 library(pwr)
 library(tidyverse)
 
@@ -102,6 +102,7 @@ tight <- tibble(sort(var1), sort(var3))
 
 loose <- ggplot(tight, aes(var1,var3)) + geom_point() + geom_smooth(method = "lm") + labs(x = "", y = "")
 tightlm <- ggplot(tight, aes(`sort(var1)`,`sort(var3)`)) + geom_point() + geom_smooth(method = "lm") + labs(x = "", y = "")
+
 
 library(patchwork)
 
@@ -346,7 +347,7 @@ What was the **power** of our full-scale owl limpet study for the difference bet
 
 ```{r}
 pwr.t.test(
-  n = nrow(All_Size_Data),
+  n = 187,
   d = 0.9599906,
   sig.level = 0.05,
   power = NULL,
