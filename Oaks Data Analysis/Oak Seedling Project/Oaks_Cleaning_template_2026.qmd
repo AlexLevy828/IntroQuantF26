@@ -144,6 +144,8 @@ Moist_Data_Raw |>
   dim()
 
 nrow(Moist_Data_Raw)
+
+Moist_Data_Raw 
 ```
 
 In this next chunk, generate a cleaned data set following the example below. As you examine your raw data and find things to fix, add a #Note to create a list of things to fix up. You can then use pipes and write code to fix each thing in your checklist. This is also where if you identified `filters` or data computations in your Hypothesis worksheet (e.g., choose only one species), you can apply those.
@@ -179,7 +181,7 @@ Moist_Data <- Moist_Data_Raw |>
 Moist_Data |>
   summary(df$variable)
   
-
+Moist_Data
 ```
 
 ### Regression dataset
@@ -193,6 +195,8 @@ dim(SPAD_Data_Raw)
 glimpse(SPAD_Data_Raw)
 ```
 
+\
+
 ```{r}
 SPAd_Data <- SPAD_Data_Raw |> 
   
@@ -202,7 +206,43 @@ SPAd_Data <- SPAD_Data_Raw |>
   #Remove columns not needed for my analysis
   select(Date, Block, Treatment, Tag_Num, Dead_Alive, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6, Num_leaves, Notes)
   
-  #Things to Fix
+ 
+#Create dataframe with only observations of live seedlings
+SPAD_Data_Alive <- SPAd_Data |>
+  
+  #remove dead observations
+  filter(Dead_Alive == "Alive") 
+
+  
+#seperate SPAD data
+SPAD_Counts <- SPAD_Data_Alive |>
+  
+  #select leaf observations and relavent ID data
+  select(Date, Block, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
+  
+  mutate(SPAD_Count = n(is.na = TRUE))
+         
+  \#Make NA SPAD = 0
+  replace(is.na(SPAD_Counts), 0) |>
+  
+  
+  mutate(SPAD_Recorded = ncol()
+         
+  ncol(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6 != 0)
+
+  mutate(SPAD_Count <- (Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6))
+#add column with avg SPAD 
+mutate(SPAD_Avg = mean(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6))
+
+replace(is.na(Leaf6), 0)
+  
+  mutate(SPAD_Count = Leaf1 + Leaf2 + Leaf3 + Leaf4 + Leaf5 + Leaf6)
+  
+
+  
+  mean
+  #if needed
+  count(Dead_Alive = "Dead")
 ```
 
 ## Exploratory Data Analysis
