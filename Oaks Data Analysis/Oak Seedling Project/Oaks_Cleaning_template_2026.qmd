@@ -163,26 +163,44 @@ Moist_Data <- Moist_Data_Raw |>
   #Remove rows without data
   filter(Treatment != "NA") |>
   
+  #Convert VWC values of 0.0 to be NA
+  mutate(VWC1_perc = case_when(
+    VWC1_perc == "0.0" ~ NA, 
+    VWC1_perc != "0.0" ~ VWC1_perc)) |>
+  
+  mutate(VWC2_perc = case_when(
+    VWC2_perc == "0.0" ~ NA, 
+    VWC2_perc != "0.0" ~ VWC2_perc)) |>
+  
+  mutate(VWC3_perc = case_when(
+    VWC3_perc == "0.0" ~ NA, 
+    VWC3_perc != "0.0" ~ VWC3_perc)) |>
+  
   #remove rows that do not include VWC data
-  filter(VWC1_perc != "NA", VWC2_perc != "NA", VWC3_perc != "NA") |>
+  filter(VWC1_perc != "NA") |>
   
   #remove columns that do not include data relavent for my analysis
   select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |>
-  
-  #change VWC data into numeric values
+
+  #change VWC  and date data into numeric values
   mutate(VWC1_perc = as.numeric(VWC1_perc)) |>
   mutate(VWC2_perc = as.numeric(VWC2_perc)) |>
   mutate(VWC3_perc = as.numeric(VWC3_perc)) |>
-
+  
 #add average VWC as new column
-  mutate(VWC = (VWC1_perc + VWC2_perc + VWC3_perc)/3)
+  rowwise()|>
+  
+  mutate(VWC = mean(c(VWC1_perc, VWC2_perc, VWC3_perc), na.rm = TRUE))
 
 #check for any strange outliers/incorrect data
 Moist_Data |>
   summary(df$variable)
   
 Moist_Data
+
 ```
+
+\>
 
 ### Regression dataset
 
@@ -211,38 +229,18 @@ SPAd_Data <- SPAD_Data_Raw |>
 SPAD_Data_Alive <- SPAd_Data |>
   
   #remove dead observations
-  filter(Dead_Alive == "Alive") 
-
-  
-#seperate SPAD data
-SPAD_Counts <- SPAD_Data_Alive |>
+  filter(Dead_Alive == "Alive") |>
   
   #select leaf observations and relavent ID data
-  select(Date, Block, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
+  select(Date, Block, Treatment, Tag_Num, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
+  rowwise() |>
   
-  mutate(SPAD_Count = n(is.na = TRUE))
-         
-  \#Make NA SPAD = 0
-  replace(is.na(SPAD_Counts), 0) |>
-  
-  
-  mutate(SPAD_Recorded = ncol()
-         
-  ncol(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6 != 0)
+  mutate(SPAD_Avg = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE) )
 
-  mutate(SPAD_Count <- (Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6))
-#add column with avg SPAD 
-mutate(SPAD_Avg = mean(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6))
-
-replace(is.na(Leaf6), 0)
-  
-  mutate(SPAD_Count = Leaf1 + Leaf2 + Leaf3 + Leaf4 + Leaf5 + Leaf6)
-  
-
-  
-  mean
-  #if needed
-  count(Dead_Alive = "Dead")
+##combining dataframes 
+SPAD_Moist_Data <- inner_join(SPAD_Data_Alive, Moist_Data) |>
+  select(Date, Block, Treatment, Tag_Num, SPAD_Avg, VWC) 
+#issues combining. Ask for help in trouble shooting/how to account for more SPAD observatons than moisture
 ```
 
 ## Exploratory Data Analysis
@@ -262,5 +260,43 @@ Not sure where to start?
 Go for it!
 
 ```{r}
+##Soil Moisture
+#moisture by treatment 
+Moist_Data |> 
+  ggplot() + aes(x = Treatment, y = VWC) +
+  geom_boxplot()
+#appears to be lots of overlap in moisture across treatemnts. Only noticable difference is in NR, possibly due to outliers in data/fewer samples
 
+#moisture by block (date implied)
+Moist_Data |> 
+  ggplot() + aes(x = Block, y = VWC) +
+  geom_boxplot()
+#noticable difference in moisture across blocks. Blocks sampled on different days with rain event in between
+
+
+
+##SPAD Data
+#SPAD by treatment 
+SPAD_Data_Alive |> 
+  ggplot() + aes(x = Treatment, y = SPAD_Avg) +
+  geom_boxplot() + geom_jitter() 
+#AVG SPAD similar across treatments, notable lower outliers in OS
+
+#SPAD by block (date)
+SPAD_Data_Alive |> 
+  ggplot() + aes(x = Block, y = SPAD_Avg) +
+  geom_boxplot()
+#SPAD seems relatively consistent across blocks. Block 7 lower?
+
+#Moisture vs SPAD
+SPAD_Moist_Data |>
+  ggplot() + aes(x= VWC, y = SPAD_Avg) +
+  geom_point() + geom_smooth(se = FALSE)
+#possible positivie relationship between VWC and SPAD but relationship seems limited by sample size
+
+#assess normality and model data
+SPAD_Moist_Model <- lm(SPAD_Avg ~ VWC, data = SPAD_Moist_Data)
+
+plot(SPAD_Moist_Model)
+#data appears mostly normal but skewed to the left
 ```
