@@ -10,19 +10,444 @@ editor: visual
 
 Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
 
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+## Analysis Packages
 
 ```{r}
-1 + 1
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(lmerTest)
 ```
 
-You can add options to executable code like this
+## Oak Data Input 
+
+**Soil Moisture Data**
 
 ```{r}
-#| echo: false
-2 * 2
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+**SPAD Data**
+
+```{r}
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+```
+
+**LICOR Data**
+
+```{r}
+LICOR_Data_Raw_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",              
+             sheet = "LICOR", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+LICOR_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",  
+             sheet = "LICOR", 
+             skip = 3, 
+             col_names = LICOR_Data_Raw_NAMES,
+             col_types = "text")
+
+
+ALL_Licor_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+ALL_Licor <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             skip = 3, 
+             col_names = ALL_Licor_NAMES, 
+             col_types = "text")
+
+LICOR_Data_Raw <- full_join(LICOR_Data_Raw, ALL_Licor)
+```
+
+## Data Cleaning and Summary
+
+**Soil Moisture Data**
+
+```{r}
+  #clean data
+  Moist_Data <- Moist_Data_Raw |>
+  
+  #Remove rows without data
+  filter(Treatment != "NA") |>
+  
+  #Convert VWC values of 0.0 to be NA
+  mutate(VWC1_perc = case_when(
+    VWC1_perc == "0.0" ~ NA, 
+    VWC1_perc != "0.0" ~ VWC1_perc)) |>
+  
+  mutate(VWC2_perc = case_when(
+    VWC2_perc == "0.0" ~ NA, 
+    VWC2_perc != "0.0" ~ VWC2_perc)) |>
+  
+  mutate(VWC3_perc = case_when(
+    VWC3_perc == "0.0" ~ NA, 
+    VWC3_perc != "0.0" ~ VWC3_perc)) |>
+  
+  #remove rows that do not include any VWC data
+  
+  
+  #remove columns that do not include data relavent for my analysis
+  select(Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |>
+  
+  #change VWC  and date data into numeric values
+  mutate(VWC1_perc = as.numeric(VWC1_perc)) |>
+  mutate(VWC2_perc = as.numeric(VWC2_perc)) |>
+  mutate(VWC3_perc = as.numeric(VWC3_perc)) |>
+  
+  #add average VWC as new column
+  rowwise()|>
+  
+  mutate(VWC = mean(c(VWC1_perc, VWC2_perc, VWC3_perc), na.rm = TRUE)) |>
+    
+  #arrange by block and treatment to make reading easier
+  arrange(Block, Treatment) |>
+    
+  #remove native recruits for consistency across data
+  filter(Treatment != "NR") |>
+    
+  #remove empty row
+  filter(VWC != "NaN")
+
+  #check for any strange outliers/incorrect data
+  Moist_Data |>
+  summary(df$variable)
+
+  Moist_Data
+```
+
+**SPAD Data**
+
+```{r}
+SPAd_Data <- SPAD_Data_Raw |> 
+  
+  #Remove rows without data
+  filter(Treatment != "NA") |>
+  
+  #Remove columns not needed for my analysis
+  select(Date, Block, Treatment, Tag_Num, Dead_Alive, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6, Num_leaves, Notes)
+
+
+  #Create dataframe with only observations of live seedlings
+  SPAD_Data_Alive <- SPAd_Data |>
+  
+  #remove dead observations
+  filter(Dead_Alive == "Alive") |>
+  
+  #select leaf observations and relavent ID data
+  select(Block, Treatment, Tag_Num, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
+  rowwise() |>
+  
+  mutate(SPAD_Avg = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE) ) |>
+    
+  arrange(Block, Treatment) |>
+    
+    #remove Native recruits for consistency across data sets 
+    filter(Treatment != "NR")
+
+  SPAD_Data_Alive
+```
+
+**LICOR Data**
+
+```{r}
+LICOR_Data <- LICOR_Data_Raw |>
+  #Remove rows without data
+  filter(Treatment_NA_NA != "NA") |>
+  
+  filter(Treatment_NA_NA != "??") |>
+  
+  #remove native recruits for consistency across data sets
+  filter(Treatment_NA_NA != "NR") |>
+
+  #Select data that we need for analysis
+  select("USERDEF_Block Number_NA", "USERDEF_Tag Number_NA", 
+         "Treatment_NA_NA", "Dead_Alive_NA_NA", "PORO_gsw_mol+1m-2s-1", 
+         "PORO_E_apparent_mmol+1m-2s-1") |>
+  
+  #rename columns with untidy names
+  rename(Block_Num = "USERDEF_Block Number_NA") |>
+  rename(Tag_Num = "USERDEF_Tag Number_NA") |>
+  rename(Treatment = "Treatment_NA_NA") |>
+  rename(Dead_Alive = "Dead_Alive_NA_NA") |>
+  rename(Conductance = "PORO_gsw_mol+1m-2s-1") |>
+  rename(Transpiration = "PORO_E_apparent_mmol+1m-2s-1") |>
+  
+  #make data values of interest numeric
+  mutate(Conductance = as.numeric(Conductance)) |>
+  mutate(Transpiration = as.numeric(Transpiration)) |>
+
+  #Combine observations from same sapplings as avg of measurements
+  group_by(Tag_Num) |>
+  mutate(Conductance = mean(Conductance)) |>
+  mutate(Transpiration = mean(Transpiration)) |>
+  distinct(Tag_Num, .keep_all = TRUE) 
+
+LICOR_Data 
+```
+
+**Combine SPAD and Moisture Data**
+
+```{r}
+SPAD_Moist_Data <- left_join(SPAD_Data_Alive, Moist_Data) |>
+  select(Block, Treatment, Tag_Num, SPAD_Avg, VWC) |>
+  #remove unpaired values
+  filter(VWC != "NA")
+
+SPAD_Moist_Data 
+```
+
+**Combine LICOR and Moisture Data**
+
+```{r}
+Moist_LICOR <- left_join(LICOR_Data, Moist_Data) |>
+  distinct(Tag_Num, .keep_all = TRUE) |>
+  select(Block, Tag_Num, Treatment, Conductance, Transpiration, VWC)
+
+Moist_LICOR
+```
+
+**Combine all three data sets**
+
+```{r}
+##Need help/guidance. IDK what is happening here, joining either removes rows or creates NA Values. There should be a SPAD_Moist value for each LICOR. I have tried left_, inner_, and full_join. Full_join produces the most rows but with more gaps.  
+
+All_Data <- left_join(SPAD_Moist_Data, LICOR_Data) |>
+  select(Block, Treatment, Tag_Num, SPAD_Avg, VWC, Conductance, Transpiration) |>
+  filter(Conductance != "NA")
+
+All_Data
+```
+
+## ANOVA Test (Moisture by Treatment)
+
+**Assumptions of Normality/Variance**
+
+```{r}
+#check general distribution trends by visualizing 
+  Moist_Data |>
+  ggplot() + aes(x = Treatment, y = VWC) +
+  geom_boxplot()
+
+  Moist_Data |>
+  ggplot() + aes(x = VWC) +
+  geom_histogram(binwidth = 1.5)
+
+#create model to test assumptions
+  moist.lm <- lm(VWC ~ Treatment, data = Moist_Data)
+
+#Shapiro test just to be sure
+  shapiro.test(residuals(moist.lm))
+  ##p=0.008; data not normal
+
+#check homogeneity of variance 
+  plot(moist.lm, which = 1)
+  plot(moist.lm, which = 2)
+  bartlett.test(VWC ~ Treatment, data = Moist_Data)
+  ##p=0.599; variance rouhgly equal among treatments
+```
+
+By applying a Shapiro-Wilk test we see that the data is not normally distributed (p = 0.008). Nontheless, use of the Bartlett test demonstrates that the data is roughly equal in variance across treatment types (p = 0.599). We must use a non-parametric test; in this case the Kruskal-Wallis test.
+
+**ANOVA**
+
+```{r}
+kruskal.test(VWC ~ Treatment, data = Moist_Data)
+
+##Non-significant difference in soil moisture by treatment :(
+```
+
+**ANOVA Figure**
+
+```{r}
+#create summary stats anyways
+  moist.summary <- Moist_Data |>
+  group_by(Treatment) |>
+    summarise(mean_VWC = mean(VWC), 
+              se_VWC = sd(VWC)/sqrt(n()))
+  
+#create summary figure
+  moist.summary |>
+    ggplot() + aes(x = Treatment, y = mean_VWC, fill = Treatment) +
+    geom_col() + 
+    geom_errorbar(aes(ymin = (mean_VWC - se_VWC), ymax = (mean_VWC + se_VWC)), width = 0.2) +
+    labs(y = "Average Volumetric Water Content", 
+         title = "Volumetric Water Content by Treatment Type")
+```
+
+## Regression Test (SPAD by Moisture)
+
+**Assumptions of Normality**
+
+```{r}
+#visual data to identify trends
+  SPAD_Moist_Data |>
+  ggplot() + aes(x = VWC, y = SPAD_Avg) +
+  geom_point()
+
+#check distribution of both variables
+  hist(SPAD_Moist_Data$VWC)
+  hist(SPAD_Moist_Data$SPAD_Avg)
+##VWC data looks bimodal/not normal. Use Spearman's Rank test.
+  
+#check for variance/homoscedasticity
+  SPAD_Moist.lm <- lm(SPAD_Avg ~ VWC, data = SPAD_Moist_Data)
+  plot(SPAD_Moist.lm)
+  plot(SPAD_Moist.lm, which = 1)
+  plot(SPAD_Moist.lm, which = 2)
+  
+  
+```
+
+**Regression Model**
+
+```{r}
+#r could not recognize columms, had to write test in weird way
+  SPAD_Moist_Spear <- cor.test(~ VWC + SPAD_Avg, data = SPAD_Moist_Data, method = "spearman")
+  SPAD_Moist_Spear
+  
+#isolate spearman coefficient
+  rho_spear <- round(SPAD_Moist_Spear$estimate, 3)
+  rho_spear
+  #rho = -0.237
+
+#isolate p-value
+  p_spear <- round(SPAD_Moist_Spear$p.value, 3)
+  p_spear
+```
+
+**Regression Figure**
+
+```{r}
+#view linear model
+  SPAD_Moist.lm
+  summary(SPAD_Moist.lm)
+
+#slope of best fit line
+  slope <- coef(SPAD_Moist.lm)[2]
+  slope
+
+#intercept of best fit line
+  intercept <- coef(SPAD_Moist.lm)[1]
+  intercept
+
+#p-value for best fit line
+  summary(SPAD_Moist.lm)$coefficients[2,4]
+  ##Best fit line is not very good/does not represent significant relationship
+  
+#create graph with best fit line. dashed line to show not a good fit/significant relationship
+  SPAD_Moist_Data |>
+  ggplot() + aes(x = VWC, y = SPAD_Avg) +
+  geom_point() + geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(x = "Volumetric Water Content (VWC)",y = "Average SPAD", 
+       title = "Average SPAD Value by Water Content")
+```
+
+## Regression Test (LICOR by Moisture)
+
+**Transpiration**
+
+```{r}
+#visual data to identify trends
+  ##VWC data is clumped and varies by decimal points. How to acount/show this better?
+  Moist_LICOR |>
+  ggplot() + aes(x = VWC, y = Transpiration) +
+  geom_point()
+
+#check distribution of both variables
+  hist(Moist_LICOR$VWC)
+  hist(Moist_LICOR$Transpiration)
+  ##looks mostly normal
+
+#check for variance/homoscedasticity
+  Transp_Moist.lm <- lm(Transpiration ~ VWC, data = Moist_LICOR)
+  plot(Transp_Moist.lm)
+  plot(Transp_Moist.lm, which = 1)
+  plot(Transp_Moist.lm, which = 2)
+  ##doesn't look great but isn't terrible?
+
+#creat figure for model
+  summary(Transp_Moist.lm)
+  
+  #slope of best fit line
+  slope2 <- coef(Transp_Moist.lm)[2]
+  slope2
+  
+  #intercept of best fit line
+  intercept2 <- coef(Transp_Moist.lm)[1]
+  intercept2
+  
+  #p-value for best fit line
+  summary(Transp_Moist.lm)$coefficients[2,4]
+  ##Best fit line isn't great/does not represent significant relationship
+  
+  #create graph with best fit line. dashed line to show not a good fit/significant relationship
+  Moist_LICOR |>
+  ggplot() + aes(x = VWC, y = Transpiration) +
+  geom_point()+ geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(x = "Volumetric Water Content (VWC)", y = "Transpiration (mmol*m^2/sec)", 
+         title = "Oak Transpiration by Soil Water Content")
+```
+
+**Stomatal Conductance**
+
+```{r}
+#visual data to identify trends
+##VWC data is clumped and varies by decimal points. How to acount/show this better?
+  Moist_LICOR |>
+  ggplot() + aes(x = VWC, y = Conductance) +
+  geom_point()
+
+#check distribution of both variables
+  hist(Moist_LICOR$VWC)
+  hist(Moist_LICOR$Conductance)
+##looks mostly normal
+
+#check for variance/homoscedasticity
+  Cond_Moist.lm <- lm(Conductance ~ VWC, data = Moist_LICOR)
+  plot(Cond_Moist.lm)
+  plot(Cond_Moist.lm, which = 1)
+  plot(Cond_Moist.lm, which = 2)
+##doesn't look good
+
+#creat figure for model
+  summary(Cond_Moist.lm)
+
+#slope of best fit line
+  slope2 <- coef(Cond_Moist.lm)[2]
+  slope2
+
+#intercept of best fit line
+  intercept2 <- coef(Cond_Moist.lm)[1]
+  intercept2
+
+#p-value for best fit line
+  summary(Cond_Moist.lm)$coefficients[2,4]
+##Best fit line isn't great/does not represent significant relationship
+
+#create graph with best fit line. dashed line to show not a good fit/significant relationship
+Moist_LICOR |>
+  ggplot() + aes(x = VWC, y = Conductance) +
+  geom_point()+ geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(x = "Volumetric Water Content (VWC)", y = "Stomatal Conductance (mol*m^2/sec)", 
+       title = "Stomatal Conductance by Soil Water Content")
+```
