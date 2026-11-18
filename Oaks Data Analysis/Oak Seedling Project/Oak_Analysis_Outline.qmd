@@ -13,13 +13,18 @@ Quarto enables you to weave together content and executable code into a finished
 ## Analysis Packages
 
 ```{r}
+install.packages("tidyverse")
+install.packages("readxl")
+install.packages("lme4")
+install.packages("lmerTest")
+
 library(tidyverse)
 library(readxl)
 library(lme4)
 library(lmerTest)
 ```
 
-## Oak Data Input 
+## Oak Data Input
 
 **Soil Moisture Data**
 
@@ -107,7 +112,7 @@ LICOR_Data_Raw <- full_join(LICOR_Data_Raw, ALL_Licor)
   
   
   #remove columns that do not include data relavent for my analysis
-  select(Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |>
+  select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |>
   
   #change VWC  and date data into numeric values
   mutate(VWC1_perc = as.numeric(VWC1_perc)) |>
@@ -154,7 +159,7 @@ SPAd_Data <- SPAD_Data_Raw |>
   filter(Dead_Alive == "Alive") |>
   
   #select leaf observations and relavent ID data
-  select(Block, Treatment, Tag_Num, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
+  select(Date, Block, Treatment, Tag_Num, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |>
   rowwise() |>
   
   mutate(SPAD_Avg = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE) ) |>
@@ -209,7 +214,7 @@ LICOR_Data
 
 ```{r}
 SPAD_Moist_Data <- left_join(SPAD_Data_Alive, Moist_Data) |>
-  select(Block, Treatment, Tag_Num, SPAD_Avg, VWC) |>
+  select(Date, Block, Treatment, Tag_Num, SPAD_Avg, VWC) |>
   #remove unpaired values
   filter(VWC != "NA")
 
@@ -253,7 +258,7 @@ All_Data
   geom_histogram(binwidth = 1.5)
 
 #create model to test assumptions
-  moist.lm <- lm(VWC ~ Treatment, data = Moist_Data)
+  moist.lm <- lm(VWC ~ Treatment*Date, data = Moist_Data)
 
 #Shapiro test just to be sure
   shapiro.test(residuals(moist.lm))
