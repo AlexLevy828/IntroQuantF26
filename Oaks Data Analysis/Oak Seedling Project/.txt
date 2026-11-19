@@ -1,0 +1,28 @@
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>table output</title>
+<script src="libff1047dbb83d/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="libff1047dbb83d/bootstrap-3.3.5/css/simplex.min.css" rel="stylesheet" />
+<script src="libff1047dbb83d/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="libff1047dbb83d/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="libff1047dbb83d/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<link href="libff1047dbb83d/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<script src="libff1047dbb83d/kePrint-0.0.1/kePrint.js"></script>
+
+</head>
+<body>
+Table: Table 1. Two-way ANOVA comparing average volumetric
+               water content (VWC) across habitat types and survey dates  |               | Df|    Sum Sq|    Mean Sq|    F value|    Pr(>F)| |:--------------|--:|---------:|----------:|----------:|---------:| |Treatment      |  2|  21.91504|  10.957518|   2.280712| 0.1294925| |Date           |  1| 693.50653| 693.506535| 144.347335| 0.0000000| |Treatment:Date |  2|  22.60221|  11.301105|   2.352226| 0.1222573| |Residuals      | 19|  91.28415|   4.804429|         NA|        NA|
+</body>
+</html>

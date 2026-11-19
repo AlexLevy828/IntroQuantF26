@@ -17,11 +17,15 @@ install.packages("tidyverse")
 install.packages("readxl")
 install.packages("lme4")
 install.packages("lmerTest")
+install.packages("webshot2")
+install.packages("kableExtra")
 
 library(tidyverse)
 library(readxl)
 library(lme4)
 library(lmerTest)
+library(webshot2)
+library(kableExtra)
 ```
 
 ## Oak Data Input
@@ -163,6 +167,7 @@ Survival_Data <- SPAD_Data_Raw |>
   mutate(survival = n/9)
 
 Survival_Data 
+
 ```
 
 ## ANOVA Tests
@@ -193,6 +198,8 @@ Survival_Data
   plot(moist.lm, which = 2)
   bartlett.test(VWC ~ Treatment, data = Moist_Data)
   ##p=0.599; variance rouhgly equal among treatments
+  
+
 ```
 
 By applying a Shapiro-Wilk test we see that the data is bimodal but normally distributed (p = 0.4494). Additionally, use of the Bartlett test demonstrates that the data is roughly equal in variance across treatment types (p = 0.599). We must use a non-parametric test; in this case the Kruskal-Wallis test.
@@ -201,9 +208,15 @@ By applying a Shapiro-Wilk test we see that the data is bimodal but normally dis
 
 ```{r}
 anova(moist.lm)
-
-
 ##Non-significant difference in soil moisture by treatment, but significant difference by date
+
+#make clean table
+  table_1 <- knitr::kable(anova(moist.lm), caption = "Table 1. Two-way ANOVA comparing average volumetric
+               water content (VWC) across habitat types and survey dates",
+                          format = "latex")
+
+  tex_table <- kable(head(mtcars), format = "latex", booktabs = TRUE)
+  save_kable(table_1, file = "table.tex")
 ```
 
 **ANOVA Figure**
@@ -224,33 +237,71 @@ anova(moist.lm)
          title = "Volumetric Water Content by Treatment Type")
 ```
 
-## Survival by Treatment 
+## Survival by Treatment
+
+**Assumptions of Normality/Variance**
 
 ```{r}
+#find number of living seedlings in each treatment 
+Survival_Data|>
+  group_by(Treatment) |>
+  summarise(total_seed = sum(n))
 
-anova(survival.lm)
+#avg survival by habitat
+Survival_Data|>
+  group_by(Treatment) |>
+  summarise(survival = mean(survival))
 
 #check general distribution trends by visualizing 
-Survival_Data |>
+  Survival_Data |>
   ggplot() + aes(x = Treatment, y = survival) +
   geom_boxplot()
 
-Survival_Data |>
+  Survival_Data |>
   ggplot() + aes(x = survival) +
-  geom_histogram(binwidth = 1.5)
+  geom_histogram(binwidth = .1)
 
 #create model to test assumptions
-survival.lm <- lm(survival ~ Treatment, data = Survival_Data)
+  survival.lm <- lm(survival ~ Treatment, data = Survival_Data)
 
 #Shapiro test just to be sure
-shapiro.test(residuals(survival.lm))
+  shapiro.test(residuals(survival.lm))
 ##p=0.008; data not normal
 
 #check homogeneity of variance 
-plot(moist.lm, which = 1)
-plot(moist.lm, which = 2)
-bartlett.test(survival ~ Treatment, data = Survival_Data)
+  plot(moist.lm, which = 1)
+  plot(moist.lm, which = 2)
+  bartlett.test(survival ~ Treatment, data = Survival_Data)
 ##p=0.3263; variance rouhgly equal among treatments
+
+  
+```
+
+**ANOVA**
+
+```{r}
+kruskal.test(survival ~ Treatment, data = Survival_Data)
+#non-substantial variation in survival by treatment 
+```
+
+**ANOVA Figure**
+
+```{r}
+#create summary stats anyways
+survival.summary <- Survival_Data |>
+  group_by(Treatment) |>
+  summarise(mean_survival = mean(survival), 
+            se_survival = sd(survival)/sqrt(n()))
+
+survival.summary 
+
+#create summary figure
+survival.summary |>
+  ggplot() + aes(x = Treatment, y = mean_survival, fill = Treatment) +
+  geom_col() + 
+  geom_errorbar(aes(ymin = (mean_survival - se_survival), ymax = (mean_survival + se_survival)), width = 0.2) +
+  labs(y = "Average Seedling Survival", 
+       title = "Seedling Survival by Treatment Type")
 ```
 
 ## Regression Test (SPAD by Moisture)
@@ -266,14 +317,17 @@ bartlett.test(survival ~ Treatment, data = Survival_Data)
 #check distribution of both variables
   hist(SPAD_Moist_Data$VWC)
   hist(SPAD_Moist_Data$SPAD_Avg)
-##VWC data looks bimodal/not normal. Use Spearman's Rank test.
+##VWC data looks normal/bimodal. Use Spearman's Rank test.
   
 #check for variance/homoscedasticity
-  SPAD_Moist.lm <- lm(SPAD_Avg ~ VWC, data = SPAD_Moist_Data)
+  SPAD_Moist.lm <- lm(SPAD_Avg ~ VWC*Date, data = SPAD_Moist_Data)
   plot(SPAD_Moist.lm)
   plot(SPAD_Moist.lm, which = 1)
   plot(SPAD_Moist.lm, which = 2)
-  
+
+  #view linear model
+  SPAD_Moist.lm
+  summary(SPAD_Moist.lm)
   
 ```
 
@@ -281,8 +335,8 @@ bartlett.test(survival ~ Treatment, data = Survival_Data)
 
 ```{r}
 #r could not recognize columms, had to write test in weird way
-  SPAD_Moist_Spear <- cor.test(~ VWC + SPAD_Avg, data = SPAD_Moist_Data, method = "spearman")
-  SPAD_Moist_Spear
+  SPAD_Moist_Cor <- cor.test(~ VWC + SPAD_Avg, data = SPAD_Moist_Data, method = "pearson")
+  SPAD_Moist_Cor
   
 #isolate spearman coefficient
   rho_spear <- round(SPAD_Moist_Spear$estimate, 3)
